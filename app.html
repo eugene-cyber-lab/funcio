@@ -1,0 +1,1466 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Funcio — Avaliação IFBRM</title>
+<meta name="description" content="Primeiro e único aplicador online do IFBRM — Índice de Funcionalidade Brasileiro Modificado. Gratuito, guiado, LGPD-compliant.">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{font-family:'Segoe UI',system-ui,sans-serif;background:#f0f4fa;color:#222;height:100%}
+body{display:flex;flex-direction:column}
+#shell{display:flex;flex:1;min-height:100vh}
+#sidebar{width:256px;background:#0f172a;color:#fff;display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
+#sidebar-top{padding:18px 16px 14px;border-bottom:1px solid rgba(255,255,255,0.08)}
+.logo{font-size:16px;font-weight:900;color:#fff;letter-spacing:0.5px}
+.logo span{color:#60a5fa}
+.logo-sub{font-size:10px;color:rgba(255,255,255,0.4);margin-top:2px;letter-spacing:1px;text-transform:uppercase}
+#nav{flex:1;overflow-y:auto;padding:10px 8px}
+.nav-item{padding:9px 12px;border-radius:6px;cursor:pointer;font-size:12px;color:rgba(255,255,255,0.5);transition:all 160ms;border-left:3px solid transparent;margin-bottom:2px;line-height:1.3}
+.nav-item:hover{background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.85)}
+.nav-item.active{background:rgba(96,165,250,0.15);color:#fff;border-left-color:#60a5fa;font-weight:600}
+.nav-item.done{color:#86efac;border-left-color:#86efac}
+.nav-item.todo{color:rgba(255,255,255,0.3)}
+#sidebar-footer{padding:12px 16px;border-top:1px solid rgba(255,255,255,0.08);font-size:11px;color:rgba(255,255,255,0.35);line-height:1.6}
+#timer-display{font-size:13px;font-weight:700;color:#60a5fa;margin-bottom:3px;letter-spacing:0.5px}
+#main{flex:1;display:flex;flex-direction:column;background:#fff;min-width:0}
+#pbar{height:5px;background:#e5e7eb;flex-shrink:0}
+#pfill{height:100%;background:linear-gradient(90deg,#1a56a4,#60a5fa);transition:width 400ms}
+#legend-bar{background:#f8faff;border-bottom:1px solid #dbeafe;padding:7px 40px;display:none;align-items:center;gap:6px;flex-shrink:0;flex-wrap:wrap}
+.lb-item{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap}
+.lb100{background:#e6f1fb;color:#185fa5}.lb75{background:#eaf3de;color:#3b6d11}
+.lb50{background:#faeeda;color:#854f0b}.lb25{background:#fcebeb;color:#791f1f}
+.lb-sep{color:#d1d5db;font-size:12px}
+#content{flex:1;overflow-y:auto;padding:28px 44px}
+#footer{padding:12px 24px;background:#f9fafb;border-top:1px solid #e5e7eb;display:flex;align-items:center;gap:12px;flex-shrink:0}
+#bp,#bn{padding:9px 20px;background:#1a56a4;color:#fff;border:none;border-radius:7px;cursor:pointer;font-size:13px;font-weight:700;transition:all 160ms}
+#bp:hover,#bn:hover{background:#1345a0}
+#bp:disabled,#bn:disabled{background:#e5e7eb;color:#9ca3af;cursor:not-allowed}
+.sct{flex:1;text-align:center;font-size:12px;color:#6b7280;font-weight:500}
+.pg-title{font-size:20px;font-weight:800;color:#0f172a;margin-bottom:4px}
+.pg-sub{font-size:13px;color:#6b7280;margin-bottom:22px;line-height:1.5}
+.fg{display:flex;flex-direction:column;gap:14px}
+.r2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+label{font-size:12px;font-weight:700;color:#374151;display:block;margin-bottom:5px}
+input[type="text"],input[type="email"],input[type="date"],select,textarea{width:100%;padding:9px 11px;border:1px solid #d1d5db;border-radius:7px;font-size:13px;font-family:inherit;color:#111;background:#fff;transition:border-color 160ms,box-shadow 160ms}
+input:focus,select:focus,textarea:focus{outline:none;border-color:#1a56a4;box-shadow:0 0 0 3px rgba(26,86,164,0.12)}
+.field-hint{font-size:11px;color:#9ca3af;margin-top:4px}
+.rg{display:flex;flex-direction:column;gap:8px}
+.ri{display:flex;align-items:flex-start;gap:10px;padding:11px 13px;background:#f9fafb;border-radius:7px;border:1.5px solid transparent;cursor:pointer;font-size:13px;line-height:1.4;transition:all 150ms}
+.ri:hover{background:#f0f4ff}
+.ri.sel{background:#eff6ff;border-color:#1a56a4;font-weight:500}
+.ri input{margin-top:2px;cursor:pointer}
+.cg{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}
+.ci{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:#f9fafb;border-radius:7px;border:1.5px solid transparent;cursor:pointer;font-size:13px;line-height:1.4;transition:all 150ms}
+.ci:hover{background:#f0f4ff}
+.ci.sel{background:#eff6ff;border-color:#1a56a4;font-weight:500}
+.ci input{margin-top:2px;cursor:pointer}
+.dom-brief{background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:14px 16px;margin-bottom:20px}
+.dom-brief-title{font-size:13px;font-weight:800;color:#1e40af;margin-bottom:5px}
+.dom-brief-body{font-size:12px;color:#1e3a5f;line-height:1.6}
+.dom-brief-tip{font-size:11px;color:#475569;margin-top:7px;padding-top:7px;border-top:1px solid #bfdbfe}
+.dom-brief-tip::before{content:"💡 "}
+.item-card{border:1px solid #e5e7eb;border-radius:10px;padding:16px;margin-bottom:14px;background:#fafafa;transition:border-color 160ms}
+.item-card:hover{border-color:#93c5fd}
+.item-card.answered{border-color:#c7d2fe;background:#f8f9ff}
+.item-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px}
+.item-label{font-size:13px;font-weight:700;color:#111}
+.item-code{font-size:10px;color:#9ca3af;white-space:nowrap;margin-top:2px}
+.ibox{font-size:12px;color:#1e40af;background:#eff6ff;padding:9px 11px;border-radius:7px;border-left:3px solid #3b82f6;margin-bottom:10px;line-height:1.6}
+.ibox::before{content:"💬 Pergunte: "}
+.guide-btn{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:#7c3aed;font-weight:700;cursor:pointer;background:none;border:none;padding:0;margin-bottom:9px;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px}
+.guide-btn::before{content:"❓"}
+.guide-box{background:#faf5ff;border:1px solid #ddd6fe;border-radius:8px;padding:11px 13px;margin-bottom:10px;font-size:12px;color:#3b0764;line-height:1.7;display:none}
+.guide-box.open{display:block}
+.guide-box strong{color:#6d28d9}
+.db-row{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+.db{display:flex;flex-direction:column;gap:4px;padding:11px 9px;border-radius:9px;cursor:pointer;font-size:11px;background:#fff;border:2px solid #e5e7eb;text-align:left;transition:all 140ms;line-height:1.35}
+.db:hover{border-color:#93c5fd;background:#f8faff;transform:translateY(-1px)}
+.db .sl{font-size:11px;font-weight:800;color:#6b7280}
+.db .sd{font-size:10px;color:#4b5563;line-height:1.3}
+.db.s100{background:#e6f1fb;border-color:#185fa5}.db.s100 .sl{color:#185fa5}
+.db.s75{background:#eaf3de;border-color:#3b6d11}.db.s75 .sl{color:#3b6d11}
+.db.s50{background:#faeeda;border-color:#854f0b}.db.s50 .sl{color:#854f0b}
+.db.s25{background:#fcebeb;border-color:#791f1f}.db.s25 .sl{color:#791f1f}
+.dscore{display:inline-block;padding:2px 9px;border-radius:12px;font-size:11px;font-weight:800;background:#f3f4f6;color:#9ca3af}
+.dscore.g100{background:#e6f1fb;color:#185fa5}
+.dscore.g75{background:#eaf3de;color:#3b6d11}
+.dscore.g50{background:#faeeda;color:#854f0b}
+.dscore.g25{background:#fcebeb;color:#791f1f}
+.abox{padding:10px 13px;border-radius:7px;font-size:12px;margin-bottom:9px;border-left:3px solid #f59e0b;background:#fffbeb;line-height:1.5}
+.abox.err{border-left-color:#ef4444;background:#fef2f2}
+.abox.ok{border-left-color:#10b981;background:#f0fdf4}
+.result-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:24px}
+.rc{padding:14px;border-radius:10px;border:1.5px solid #e5e7eb;text-align:center;background:#fff}
+.rc-score{font-size:30px;font-weight:900;margin-bottom:3px}
+.rc-dom{font-size:11px;font-weight:600;color:#374151;margin-bottom:4px}
+.rc-level{font-size:10px;color:#6b7280;font-weight:600;padding:2px 8px;border-radius:10px;display:inline-block;background:#f3f4f6}
+.cls-banner{padding:20px 24px;border-radius:12px;margin-bottom:24px;text-align:center}
+.cls-banner .cls-title{font-size:28px;font-weight:900;margin-bottom:6px}
+.cls-banner .cls-sub{font-size:13px;opacity:0.8;line-height:1.5}
+.cls-grave{background:#fef2f2;border:2px solid #ef4444;color:#7f1d1d}
+.cls-moderado{background:#fffbeb;border:2px solid #f59e0b;color:#78350f}
+.cls-leve{background:#f7fee7;border:2px solid #84cc16;color:#365314}
+.cls-insuf{background:#f0fdf4;border:2px solid #10b981;color:#064e3b}
+.cls-inc{background:#f9fafb;border:2px solid #d1d5db;color:#374151}
+.regua-wrap{margin:18px 0 8px;padding:0 2px}
+.regua-bar{position:relative;height:32px;border-radius:8px;overflow:visible;display:flex;margin-bottom:28px;box-shadow:0 1px 4px rgba(0,0,0,0.10)}
+.regua-seg{height:100%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:rgba(255,255,255,0.92);letter-spacing:.4px;overflow:hidden;transition:opacity .2s}
+.regua-seg:first-child{border-radius:8px 0 0 8px}
+.regua-seg:last-child{border-radius:0 8px 8px 0}
+.regua-marker{position:absolute;top:-6px;width:3px;height:44px;background:#0f172a;border-radius:2px;z-index:10;transform:translateX(-50%)}
+.regua-marker::after{content:attr(data-score);position:absolute;top:46px;left:50%;transform:translateX(-50%);font-size:11px;font-weight:900;color:#0f172a;white-space:nowrap;background:#fff;border:1.5px solid #0f172a;border-radius:5px;padding:1px 6px}
+.regua-limits{display:flex;justify-content:space-between;font-size:9px;color:#9ca3af;font-weight:600;margin-top:2px;padding:0 2px}
+.regua-labels{display:flex;position:relative;height:16px;margin-bottom:4px}
+.regua-lbl{position:absolute;font-size:9px;font-weight:800;transform:translateX(-50%);color:#6b7280}
+.fuzzy-panel{background:#fff8e1;border:1px solid #fcd34d;border-radius:10px;padding:14px 16px;margin-bottom:20px}
+.fuzzy-title{font-size:13px;font-weight:800;color:#92400e;margin-bottom:6px}
+.fuzzy-sub{font-size:11px;color:#6b7280;margin-bottom:12px;line-height:1.5}
+.fz-type{padding:10px 12px;border-radius:8px;background:#fafafa;border:1px solid #e5e7eb;margin-bottom:8px}
+.fz-type.active{background:#fff3cd;border-color:#fbbf24}
+.fz-label{font-size:12px;font-weight:700;color:#374151;margin-bottom:3px}
+.fz-doms{font-size:11px;color:#6b7280;margin-bottom:8px}
+.pdf-modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:8000;display:flex;align-items:center;justify-content:center}
+.pdf-modal{background:#fff;border-radius:14px;padding:28px 32px;max-width:420px;width:90%;box-shadow:0 8px 40px rgba(0,0,0,0.25);text-align:center}
+.pdf-modal h3{font-size:17px;font-weight:900;color:#0f172a;margin-bottom:6px}
+.pdf-modal p{font-size:12px;color:#6b7280;margin-bottom:22px;line-height:1.5}
+.pdf-modal-btns{display:flex;gap:12px;justify-content:center}
+.pdf-opt{flex:1;padding:16px 10px;border-radius:10px;border:2px solid #e5e7eb;cursor:pointer;background:#f9fafb;transition:all 160ms}
+.pdf-opt:hover{border-color:#7c3aed;background:#f5f3ff}
+.pdf-opt-icon{font-size:26px;margin-bottom:6px}
+.pdf-opt-title{font-size:13px;font-weight:800;color:#0f172a;margin-bottom:3px}
+.pdf-opt-desc{font-size:10px;color:#9ca3af;line-height:1.4}
+.pdf-modal-cancel{margin-top:14px;font-size:12px;color:#9ca3af;cursor:pointer;text-decoration:underline}
+.cid-search-wrap{position:relative;max-width:360px}
+.cid-dropdown{position:absolute;top:100%;left:0;right:0;background:#fff;border:1.5px solid #cbd5e1;border-top:none;border-radius:0 0 8px 8px;max-height:220px;overflow-y:auto;z-index:500;box-shadow:0 4px 16px rgba(0,0,0,0.12)}
+.cid-item{padding:8px 12px;cursor:pointer;font-size:12px;border-bottom:1px solid #f1f5f9}
+.cid-item:hover{background:#f0f9ff}
+.cid-item strong{color:#1a56a4;font-size:12px}
+.cid-item span{color:#6b7280;margin-left:4px}
+.cid-tag{display:inline-flex;align-items:center;gap:6px;background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;margin-top:6px}
+.cid-tag button{background:none;border:none;color:#93c5fd;cursor:pointer;font-size:14px;line-height:1;padding:0}
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#111827;color:#fff;padding:12px 22px;border-radius:9px;font-size:13px;z-index:9999;display:none;box-shadow:0 4px 20px rgba(0,0,0,0.3);max-width:380px;text-align:center}
+#toast.warn{background:#d97706}
+#toast.ok{background:#059669}
+#toast.err{background:#dc2626}
+#welcome{position:fixed;inset:0;background:rgba(10,20,40,0.85);display:flex;align-items:center;justify-content:center;z-index:9000;backdrop-filter:blur(6px)}
+.wm-box{background:#fff;border-radius:14px;padding:36px;max-width:700px;width:94%;max-height:92vh;overflow-y:auto;box-shadow:0 12px 50px rgba(0,0,0,0.35)}
+.wm-tag{font-size:10px;font-weight:800;color:#1a56a4;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px}
+.wm-title{font-size:22px;font-weight:900;color:#0f172a;margin-bottom:8px}
+.wm-text{font-size:14px;color:#4b5563;line-height:1.7;margin-bottom:18px}
+.wm-legend{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:18px}
+.wm-lcard{padding:12px 8px;border-radius:10px;text-align:center;border:2px solid transparent}
+.wm-lcard.c100{background:#e6f1fb;border-color:#185fa5}
+.wm-lcard.c75{background:#eaf3de;border-color:#3b6d11}
+.wm-lcard.c50{background:#faeeda;border-color:#854f0b}
+.wm-lcard.c25{background:#fcebeb;border-color:#791f1f}
+.wm-lscore{font-size:24px;font-weight:900;display:block;margin-bottom:4px}
+.wm-lcard.c100 .wm-lscore{color:#185fa5}
+.wm-lcard.c75 .wm-lscore{color:#3b6d11}
+.wm-lcard.c50 .wm-lscore{color:#854f0b}
+.wm-lcard.c25 .wm-lscore{color:#791f1f}
+.wm-lname{font-size:12px;font-weight:800;margin-bottom:3px}
+.wm-ldesc{font-size:11px;color:#555;line-height:1.3}
+.wm-notice{font-size:12px;color:#6b7280;background:#f9fafb;padding:11px 14px;border-radius:8px;margin-bottom:16px;line-height:1.6;border:1px solid #e5e7eb}
+.wm-lgpd{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:14px;margin-bottom:16px}
+.wm-lgpd label{font-size:13px;color:#166534;display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-weight:500;margin-bottom:0}
+.wm-lgpd input[type="checkbox"]{margin-top:2px;width:16px;height:16px;cursor:pointer;flex-shrink:0}
+.wm-email{margin-bottom:16px}
+.wm-email label{font-size:12px;font-weight:700;color:#374151;margin-bottom:6px}
+.wm-btn{background:#1a56a4;color:#fff;border:none;padding:14px;border-radius:9px;font-size:15px;font-weight:800;cursor:pointer;width:100%;transition:background 160ms}
+.wm-btn:hover{background:#1345a0}
+.wm-btn:disabled{background:#9ca3af;cursor:not-allowed}
+.btn-pdf{background:#7c3aed;color:#fff;border:none;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;transition:background 160ms}
+.btn-pdf:hover{background:#6d28d9}
+.btn-json{background:#1a56a4;color:#fff;border:none;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;transition:background 160ms}
+.btn-json:hover{background:#1345a0}
+.btn-new{background:#e5e7eb;color:#374151;border:none;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer}
+.btn-new:hover{background:#d1d5db}
+.send-status{font-size:11px;color:#6b7280;margin-top:8px;text-align:center}
+@media(max-width:720px){
+  #sidebar{display:none}
+  #content{padding:18px 20px}
+  .db-row{grid-template-columns:1fr 1fr}
+  .wm-legend{grid-template-columns:1fr 1fr}
+  #legend-bar{padding:7px 16px}
+}
+</style>
+</head>
+<body>
+
+<!-- WELCOME MODAL -->
+<div id="welcome">
+<div class="wm-box">
+  <div class="wm-tag">Funcio · IFBRM Digital</div>
+  <div class="wm-title">Avaliação Biopsicossocial da Deficiência</div>
+  <div class="wm-text">
+    Esta ferramenta guia o preenchimento do <strong>Índice de Funcionalidade Brasileiro Modificado (IFBRM)</strong>, passo a passo.<br>
+    Cada item tem roteiro de entrevista e orientações de pontuação. Não é necessário treinamento prévio.
+  </div>
+  <div style="font-size:13px;font-weight:800;color:#374151;margin-bottom:10px">Escala de pontuação — 4 níveis:</div>
+  <div class="wm-legend">
+    <div class="wm-lcard c100"><span class="wm-lscore">100</span><div class="wm-lname">Independente</div><div class="wm-ldesc">Faz sozinho, sem adaptação</div></div>
+    <div class="wm-lcard c75"><span class="wm-lscore">75</span><div class="wm-lname">Adaptado</div><div class="wm-ldesc">Faz sozinho com equipamento ou mais tempo</div></div>
+    <div class="wm-lcard c50"><span class="wm-lscore">50</span><div class="wm-lname">Com auxílio</div><div class="wm-ldesc">Precisa que outra pessoa ajude em parte</div></div>
+    <div class="wm-lcard c25"><span class="wm-lscore">25</span><div class="wm-lname">Dependente</div><div class="wm-ldesc">Depende completamente de outra pessoa</div></div>
+  </div>
+  <div class="wm-notice">
+    ⏱ A avaliação leva entre 10 e 20 minutos &nbsp;·&nbsp; 57 itens em 7 domínios &nbsp;·&nbsp; 🔒 Nenhum dado pessoal identificável é coletado
+  </div>
+
+  <div class="wm-email">
+    <label for="email_input">E-mail para receber resumo (opcional)</label>
+    <input type="email" id="email_input" placeholder="seuemail@exemplo.com" oninput="sv('email_opt',this.value.trim())"
+      style="margin-top:4px">
+    <div class="field-hint">Se preenchido, enviamos uma cópia desta avaliação. Nunca vinculado aos dados clínicos.</div>
+  </div>
+
+  <div class="wm-lgpd">
+    <label>
+      <input type="checkbox" id="lgpd_chk" onchange="toggleLGPD(this.checked)">
+      <span>Concordo que os dados anonimizados desta avaliação sejam utilizados para pesquisa epidemiológica sobre funcionalidade, nos termos do Art. 12 da LGPD (dado anonimizado não é dado pessoal).</span>
+    </label>
+  </div>
+
+  <button class="wm-btn" id="start_btn" onclick="startApp()" disabled>Iniciar avaliação →</button>
+  <div style="font-size:11px;color:#9ca3af;text-align:center;margin-top:10px">Marque o consentimento acima para habilitar</div>
+</div>
+</div>
+
+<!-- SHELL -->
+<div id="shell">
+<div id="sidebar">
+  <div id="sidebar-top">
+    <div class="logo">Fun<span>cio</span></div>
+    <div class="logo-sub">IFBRM · Avaliação Biopsicossocial</div>
+  </div>
+  <div id="nav"></div>
+  <div id="sidebar-footer">
+    <div id="timer-display">⏱ 00:00</div>
+    <div>Dados anonimizados · LGPD Art. 12</div>
+    <div style="margin-top:3px">funcio.app</div>
+  </div>
+</div>
+<div id="main">
+  <div id="pbar"><div id="pfill" style="width:0%"></div></div>
+  <div id="legend-bar">
+    <span style="font-size:11px;font-weight:700;color:#6b7280;margin-right:2px">Escala:</span>
+    <span class="lb-item lb100">100 — Independente</span>
+    <span class="lb-sep">·</span>
+    <span class="lb-item lb75">75 — Adaptado</span>
+    <span class="lb-sep">·</span>
+    <span class="lb-item lb50">50 — Com auxílio</span>
+    <span class="lb-sep">·</span>
+    <span class="lb-item lb25">25 — Dependente</span>
+  </div>
+  <div id="content"></div>
+  <div id="footer">
+    <button id="bp" onclick="nav(-1)">← Voltar</button>
+    <span class="sct" id="sct"></span>
+    <button id="bn" onclick="nav(1)">Avançar →</button>
+  </div>
+</div>
+</div>
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════
+// SUPABASE CONFIG — substitua antes do deploy
+// ═══════════════════════════════════════════════
+const SUPABASE_URL = 'https://plyqitplulyfgevxsyoh.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBseXFpdHBsdWx5ZmdldnhzeW9oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxNjY0MTEsImV4cCI6MjA5Mjc0MjQxMX0.7wXLcsZLhtipspxfiMAW_mSq9ENwiW6i9dUAcboQ1J8;';
+let _db = null;
+function initDB(){
+  try{
+    if(window.supabase && !SUPABASE_URL.includes('SEU_PROJETO')){
+      _db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    }
+  }catch(e){}
+}
+
+// ═══════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════
+const S={data:{},cur:0,scoreCache:null,startedAt:null,submitted:false};
+const TOTAL=10;
+function sv(k,v){S.data[k]=v;S.scoreCache=null;persist();}
+function gv(k,def=''){const v=S.data[k];return(v===undefined||v===null)?def:v;}
+function gb(k){return S.data[k]===true;}
+function persist(){try{sessionStorage.setItem('funcio_v1',JSON.stringify(S.data));}catch(e){}}
+function restore(){try{const d=sessionStorage.getItem('funcio_v1');if(d)S.data=JSON.parse(d);}catch(e){}}
+
+// ═══════════════════════════════════════════════
+// TIMER
+// ═══════════════════════════════════════════════
+let _timerInterval=null;
+function startTimer(){
+  if(_timerInterval)return;
+  _timerInterval=setInterval(()=>{
+    if(!S.startedAt)return;
+    const s=Math.floor((Date.now()-S.startedAt)/1000);
+    const m=Math.floor(s/60).toString().padStart(2,'0');
+    const ss=(s%60).toString().padStart(2,'0');
+    const el=document.getElementById('timer-display');
+    if(el)el.textContent=`⏱ ${m}:${ss}`;
+  },1000);
+}
+
+// ═══════════════════════════════════════════════
+// RÉGUA OFICIAL — tipo-dependente (IFBrM GTI 2022)
+// ═══════════════════════════════════════════════
+function getRegua(ag,types){
+  const c1=types.includes('C1'),c2=types.includes('C2'),c3=types.includes('C3');
+  const c4=types.includes('C4'),c5=types.includes('C5');
+  if(ag==='18-59') return{min:1250,max:5000,grave:3050,moderado:4200,leve:4950};
+  if(ag==='0-4')   return(c1||c4)
+    ?{min:700,max:2800,grave:850, moderado:1750,leve:1975}
+    :{min:700,max:2800,grave:1200,moderado:1750,leve:1975};
+  if(ag==='5-10')  return(c1||c4)
+    ?{min:1100,max:4400,grave:1750,moderado:2550,leve:3350}
+    :{min:1100,max:4400,grave:2250,moderado:2550,leve:3350};
+  if(ag==='11-17') return(c4||c5)
+    ?{min:1300,max:5200,grave:2950,moderado:3800,leve:4550}
+    :{min:1300,max:5200,grave:3250,moderado:3800,leve:4550};
+  if(ag==='60+')   return(c1||c2)
+    ?{min:600,max:2400,grave:1400,moderado:2200,leve:2350}
+    :{min:600,max:2400,grave:1650,moderado:2200,leve:2338};
+  return null;
+}
+function classifyBySum(sum,ag,types){
+  const r=getRegua(ag,types||[]);if(!r||sum===null)return null;
+  if(sum<=r.grave)    return{cls:'Grave',       cor:'#ef4444',bg:'cls-grave'};
+  if(sum<=r.moderado) return{cls:'Moderado',     cor:'#f59e0b',bg:'cls-moderado'};
+  if(sum<=r.leve)     return{cls:'Leve',         cor:'#84cc16',bg:'cls-leve'};
+  if(sum<=r.max)      return{cls:'Insuficiente', cor:'#10b981',bg:'cls-insuf'};
+  return null;
+}
+
+// ═══════════════════════════════════════════════
+// DOMAIN INFO
+// ═══════════════════════════════════════════════
+const DOMAIN_INFO=[
+  {title:'D1 · Aprendizagem e Conhecimento',
+   body:'Avalia como a pessoa percebe, aprende, processa informações, foca atenção e toma decisões no dia a dia.',
+   tip:'Se houver deficiência intelectual ou mental marcada, espere pontuações mais baixas neste domínio.'},
+  {title:'D2 · Comunicação',
+   body:'Avalia a capacidade de entender e expressar informações — pela fala, escrita, gestos ou outros meios.',
+   tip:'Na deficiência auditiva, avalie especialmente compreensão oral e conversação. Na def. física que afeta a fala, avalie os itens de produção.'},
+  {title:'D3 · Mobilidade',
+   body:'Avalia o movimento do corpo no espaço — mudar de posição, se deslocar dentro e fora de casa, usar transportes.',
+   tip:'Cadeira de rodas bem manejada de forma independente = 75 (adaptado), não 25. A pontuação reflete o que a pessoa CONSEGUE FAZER, não a ausência da deficiência.'},
+  {title:'D4 · Cuidados Pessoais',
+   body:'Avalia a capacidade de cuidar de si — alimentação, higiene, vestuário, controle de micção e defecação, e autocuidado em saúde.',
+   tip:'Quem usa fralda preventiva por escolha, mas teria controle sem ela, pode receber pontuação 75.'},
+  {title:'D5 · Vida Doméstica',
+   body:'Avalia a capacidade de realizar atividades dentro e fora do lar — cozinhar, limpar, fazer compras, organizar a rotina.',
+   tip:'Se o avaliado não realizava essas atividades ANTES da deficiência (ex: nunca cozinhou), pontue com base na capacidade atual e provável, não na ausência de hábito.'},
+  {title:'D6 · Educação, Trabalho e Vida Econômica',
+   body:'Avalia participação educacional, trabalho remunerado, autonomia profissional e gestão financeira.',
+   tip:'Desemprego por razões econômicas ≠ incapacidade. Pontue o que a pessoa CONSEGUE FAZER, independente do que faz atualmente.'},
+  {title:'D7 · Relações e Vida Social',
+   body:'Avalia como a pessoa se relaciona com família, amigos, conhecidos e a comunidade — e como lida com suas emoções.',
+   tip:'Isolamento por escolha pessoal é diferente de isolamento por incapacidade. Explore se há barreiras reais ou preferência pessoal.'},
+];
+
+// ═══════════════════════════════════════════════
+// GUIDES — "Como decidir"
+// ═══════════════════════════════════════════════
+const GUIDE={
+  i11:'<strong>100</strong> → Enxerga bem com ou sem óculos comuns. <strong>75</strong> → Usa lupa, ampliador de tela, leitor de voz — mas faz sozinho. <strong>50</strong> → Precisa que outra pessoa descreva o que ver. <strong>25</strong> → Não enxerga nada mesmo com recursos. ⚠️ Se marcou Def. Visual, raramente será 100.',
+  i12:'<strong>100</strong> → Ouve conversas normais sem adaptação. <strong>75</strong> → Aparelho auditivo bem ajustado ou leitura labial — ainda independente. <strong>50</strong> → Precisa que repitam ou falem mais alto constantemente. <strong>25</strong> → Não ouve nada. ⚠️ Aparelho que funciona bem = 75, não 100.',
+  i13:'<strong>100</strong> → Faz contas sem dificuldade. <strong>75</strong> → Usa calculadora ou precisa de mais tempo. <strong>50</strong> → Só consegue com alguém ajudando. <strong>25</strong> → Não faz nem operações simples.',
+  i14:'<strong>100</strong> → Aprende coisas novas no ritmo normal. <strong>75</strong> → Precisa de muita repetição, materiais adaptados ou mais tempo. <strong>50</strong> → Só aprende com alguém ensinando diretamente na hora. <strong>25</strong> → Não adquire novas habilidades.',
+  i15:'<strong>100</strong> → Mantém foco pelo tempo necessário normalmente. <strong>75</strong> → Precisa de pausas, ambiente sem distrações ou recursos de apoio. <strong>50</strong> → Precisa de alguém direcionando constantemente. <strong>25</strong> → Não consegue manter atenção nem com ajuda.',
+  i16:'<strong>100</strong> → Identifica problemas e encontra soluções sozinho. <strong>75</strong> → Precisa de mais tempo ou estratégias mais simples. <strong>50</strong> → Precisa de alguém estruturando o raciocínio. <strong>25</strong> → Não consegue resolver problemas.',
+  i17:'<strong>100</strong> → Toma decisões considerando consequências, sozinho. <strong>75</strong> → Precisa de mais informação ou mais tempo. <strong>50</strong> → Precisa que alguém apresente as opções e guie a escolha. <strong>25</strong> → Não toma decisões — depende totalmente.',
+  i18:'<strong>100</strong> → Inicia e conclui uma tarefa simples sem supervisão. <strong>75</strong> → Reorganiza o ambiente ou precisa de mais tempo. <strong>50</strong> → Precisa de alguém acompanhando. <strong>25</strong> → Não realiza nenhuma etapa sozinho.',
+  i19:'<strong>100</strong> → Faz várias coisas ao mesmo tempo sem dificuldade. <strong>75</strong> → Usa listas, sequenciamento ou precisa de mais tempo. <strong>50</strong> → Só uma coisa de cada vez com ajuda. <strong>25</strong> → Não realiza tarefas múltiplas.',
+  i21:'<strong>100</strong> → Entende conversas normais sem dificuldade. <strong>75</strong> → Precisa que falem mais devagar, repitam ou usem suporte visual. <strong>50</strong> → Só entende frases simples com ajuda ativa. <strong>25</strong> → Não compreende fala.',
+  i22:'<strong>100</strong> → Entende gestos, símbolos e imagens comuns. <strong>75</strong> → Precisa de sistemas específicos como Libras ou pictogramas. <strong>50</strong> → Só entende com alguém interpretando. <strong>25</strong> → Não compreende comunicação não verbal.',
+  i23:'<strong>100</strong> → Fala com clareza, é entendido por todos. <strong>75</strong> → Usa dispositivo de amplificação ou fala mais devagar — ainda independente. <strong>50</strong> → Só se faz entender em contextos muito simples. <strong>25</strong> → Não produz fala funcional.',
+  i24:'<strong>100</strong> → Usa gestos e expressões de forma intencional e adequada. <strong>75</strong> → Usa tablet, prancha ou sistema aumentativo. <strong>50</strong> → Só produz com alguém estruturando. <strong>25</strong> → Não produz mensagens não verbais.',
+  i25:'<strong>100</strong> → Lê e entende textos normais. <strong>75</strong> → Usa fonte maior, leitor de tela ou textos simplificados. <strong>50</strong> → Só entende mensagens simples com ajuda. <strong>25</strong> → Não compreende texto escrito.',
+  i26:'<strong>100</strong> → Escreve ou digita com clareza. <strong>75</strong> → Usa teclado adaptado, ditado por voz ou grafia diferenciada. <strong>50</strong> → Só produz texto simples com ajuda. <strong>25</strong> → Não produz texto escrito.',
+  i27:'<strong>100</strong> → Conversa normalmente, inicia e encerra diálogos. <strong>75</strong> → Usa intérprete de Libras ou dispositivo de comunicação. <strong>50</strong> → Participa de conversas simples com mediação. <strong>25</strong> → Não participa de conversas.',
+  i28:'<strong>100</strong> → Argumenta e debate ideias sozinho. <strong>75</strong> → Participa com mais tempo ou contexto simplificado. <strong>50</strong> → Só com alguém estruturando os argumentos. <strong>25</strong> → Não consegue discutir.',
+  i31:'<strong>100</strong> → Senta, levanta, deita sem ajuda. <strong>75</strong> → Usa barras de apoio, mobiliário adaptado ou órteses. <strong>50</strong> → Precisa de ajuda física de outra pessoa. <strong>25</strong> → Não muda nem mantém posições sem ajuda integral.',
+  i32:'<strong>100</strong> → Move-se entre superfícies (cama→cadeira) sem ajuda. <strong>75</strong> → Usa tábua de transferência ou barras de apoio. <strong>50</strong> → Precisa de ajuda física de terceiros. <strong>25</strong> → Não realiza transferência sem ajuda integral.',
+  i33:'<strong>100</strong> → Pega e carrega objetos sem limitação. <strong>75</strong> → Só carrega objetos leves, usa extensores ou superfícies adaptadas. <strong>50</strong> → Precisa de ajuda para pegar ou carregar. <strong>25</strong> → Não consegue nem pegar objetos.',
+  i34:'<strong>100</strong> → Anda por todos os cômodos sem ajuda. <strong>75</strong> → Usa cadeira de rodas, andador ou bengala dentro de casa — de forma independente. <strong>50</strong> → Precisa de apoio físico de terceiros. <strong>25</strong> → Não se desloca dentro de casa sem ajuda integral.',
+  i35:'<strong>100</strong> → Circula por edifícios públicos sem restrição. <strong>75</strong> → Usa rampas, elevadores ou dispositivos de mobilidade. <strong>50</strong> → Precisa de ajuda física de terceiros. <strong>25</strong> → Não se desloca em outros edifícios.',
+  i36:'<strong>100</strong> → Anda na rua sozinho sem dificuldade. <strong>75</strong> → Usa cadeira de rodas, rota planejada ou acompanhante eventual. <strong>50</strong> → Precisa de apoio físico constante. <strong>25</strong> → Não sai de casa sem ajuda integral.',
+  i37:'<strong>100</strong> → Usa ônibus ou metrô sozinho. <strong>75</strong> → Usa transporte acessível ou rotas específicas — mas sozinho. <strong>50</strong> → Só usa com orientação ou ajuda constante de terceiros. <strong>25</strong> → Não usa transporte coletivo.',
+  i38:'<strong>100</strong> → Entra e sai de carro como passageiro sem ajuda. <strong>75</strong> → Usa veículo adaptado ou assento especial. <strong>50</strong> → Precisa de ajuda física para entrar/sair. <strong>25</strong> → Não usa veículo sem ajuda integral.',
+  i41:'<strong>100</strong> → Come com talheres normais sem ajuda. <strong>75</strong> → Usa utensílios adaptados, textura modificada ou mais tempo. <strong>50</strong> → Precisa que alguém ajude em parte do processo. <strong>25</strong> → Não come sem ajuda integral.',
+  i42:'<strong>100</strong> → Bebe normalmente sem ajuda. <strong>75</strong> → Usa canudo, copo adaptado ou espessante. <strong>50</strong> → Precisa de ajuda para beber. <strong>25</strong> → Não bebe sem ajuda integral.',
+  i43:'<strong>100</strong> → Toma banho e seca o corpo completamente sozinho. <strong>75</strong> → Usa banqueta de banho, barras ou esponja de cabo longo. <strong>50</strong> → Precisa de ajuda em partes do banho. <strong>25</strong> → Não se lava sem ajuda integral.',
+  i44:'<strong>100</strong> → Veste e despe sem ajuda. <strong>75</strong> → Usa velcro, elásticos, calçador ou precisa de mais tempo. <strong>50</strong> → Precisa de ajuda em partes do processo. <strong>25</strong> → Não se veste sem ajuda integral.',
+  i45:'<strong>100</strong> → Cuida de pele, cabelo, unhas, dentes sozinho. <strong>75</strong> → Usa produtos ou utensílios específicos — sozinho. <strong>50</strong> → Precisa de ajuda em parte dos cuidados. <strong>25</strong> → Não cuida do próprio corpo.',
+  i46:'<strong>100</strong> → Controla urina, vai ao banheiro na hora e faz higiene. <strong>75</strong> → Usa fralda preventiva ou cateterismo autoadministrado. <strong>50</strong> → Precisa de ajuda de terceiros no processo. <strong>25</strong> → Incontinente, depende integralmente.',
+  i47:'<strong>100</strong> → Controla intestino, vai ao banheiro na hora. <strong>75</strong> → Usa rotina dietética específica ou adaptações no banheiro. <strong>50</strong> → Precisa de ajuda de terceiros. <strong>25</strong> → Incontinente, depende integralmente.',
+  i48:'<strong>100</strong> → Percebe quando está doente e busca ajuda sozinho. <strong>75</strong> → Precisa de lembretes ou supervisão periódica. <strong>50</strong> → Só identifica com ajuda de terceiros que interpretam. <strong>25</strong> → Não reconhece sinais de doença.',
+  i51:'<strong>100</strong> → Prepara lanches simples sozinho. <strong>75</strong> → Usa microondas, receitas simples ou supervisão eventual. <strong>50</strong> → Participa de alguma etapa com ajuda constante. <strong>25</strong> → Não prepara nada sozinho.',
+  i52:'<strong>100</strong> → Cozinha refeições completas sozinho. <strong>75</strong> → Usa fogão de indução, utensílios adaptados ou supervisão. <strong>50</strong> → Participa de etapas isoladas com ajuda. <strong>25</strong> → Não cozinha.',
+  i53:'<strong>100</strong> → Limpa, organiza e mantém o lar sozinho. <strong>75</strong> → Usa equipamentos adaptados ou precisa de mais tempo. <strong>50</strong> → Faz tarefas simples com ajuda de terceiros. <strong>25</strong> → Não faz tarefas domésticas.',
+  i54:'<strong>100</strong> → Guarda e conserva objetos pessoais sozinho. <strong>75</strong> → Usa ferramentas adaptadas ou supervisão. <strong>50</strong> → Só com ajuda de terceiros. <strong>25</strong> → Não mantém objetos sem ajuda integral.',
+  i55:'<strong>100</strong> → Cuida de familiares (quando necessário) sozinho. <strong>75</strong> → Cuida com suporte técnico ou simplificação. <strong>50</strong> → Só com ajuda de terceiros. <strong>25</strong> → Não presta cuidados a outros.',
+  i56:'<strong>100</strong> → Faz compras e contrata serviços sozinho. <strong>75</strong> → Usa internet, catálogo ou acompanhante eventual. <strong>50</strong> → Faz compras simples com ajuda. <strong>25</strong> → Não realiza compras sem ajuda integral.',
+  i57:'<strong>100</strong> → Busca e negocia moradia sozinho. <strong>75</strong> → Usa intermediário ou suporte informacional. <strong>50</strong> → Participa com ajuda de terceiros. <strong>25</strong> → Não obtém moradia sem ajuda integral.',
+  i58:'<strong>100</strong> → Planeja e organiza a rotina sozinho. <strong>75</strong> → Usa agenda, alarmes ou listas de tarefas. <strong>50</strong> → Só organiza com ajuda de terceiros. <strong>25</strong> → Não planeja nem organiza rotina.',
+  i61:'<strong>100</strong> → Aprende em casa ou com amigos sem dificuldade. <strong>75</strong> → Precisa de repetição, materiais modificados ou apoio tecnológico. <strong>50</strong> → Só aprende com ajuda direta e constante. <strong>25</strong> → Não aprende em contextos informais.',
+  i62:'<strong>100</strong> → Frequenta escola e progride normalmente. <strong>75</strong> → Frequenta com currículo adaptado, mais tempo ou tecnologia assistiva. <strong>50</strong> → Participa com ajuda de terceiros boa parte do tempo. <strong>25</strong> → Não participa de atividades escolares.',
+  i63:'<strong>100</strong> → Faz cursos profissionais sozinho. <strong>75</strong> → Faz com tecnologia assistiva ou mais tempo. <strong>50</strong> → Participa com ajuda direta de terceiros. <strong>25</strong> → Não consegue participar de formação profissional.',
+  i64:'<strong>100</strong> → Trabalha e cumpre tarefas de forma independente. <strong>75</strong> → Trabalha com jornada reduzida, função adaptada ou ambiente modificado. <strong>50</strong> → Trabalha com ajuda de terceiros em grande parte. <strong>25</strong> → Não exerce trabalho mesmo com suporte. ⚠️ Desemprego por razões econômicas não é 25.',
+  i65:'<strong>100</strong> → Gerencia negócio próprio sozinho. <strong>75</strong> → Trabalha por conta própria com suporte administrativo. <strong>50</strong> → Mantém atividade com ajuda constante. <strong>25</strong> → Não consegue manter trabalho autônomo.',
+  i66:'<strong>100</strong> → Busca, mantém e progride no emprego sozinho. <strong>75</strong> → Mantém emprego com mediação de RH ou adaptações. <strong>50</strong> → Mantém com ajuda constante de terceiros. <strong>25</strong> → Não mantém nem progride.',
+  i67:'<strong>100</strong> → Controla finanças e garante segurança econômica sozinho. <strong>75</strong> → Usa aplicativos de controle ou suporte familiar. <strong>50</strong> → Administra com supervisão de terceiros nas decisões. <strong>25</strong> → Não administra recursos — curatela total.',
+  i71:'<strong>100</strong> → Interage adequadamente com pessoas em qualquer contexto. <strong>75</strong> → Interage com contextos estruturados ou mediação eventual. <strong>50</strong> → Interage em situações simples com mediação constante. <strong>25</strong> → Não interage adequadamente.',
+  i72:'<strong>100</strong> → Cria e mantém vínculos familiares saudáveis. <strong>75</strong> → Mantém relações com mediação ocasional ou terapia. <strong>50</strong> → Mantém vínculos com ajuda constante. <strong>25</strong> → Não mantém relações familiares funcionais.',
+  i73:'<strong>100</strong> → Cria e mantém relações em ambientes formais (trabalho, escola). <strong>75</strong> → Mantém com mediação de RH ou suporte terapêutico. <strong>50</strong> → Mantém com ajuda direta de terceiros. <strong>25</strong> → Não mantém relações formais.',
+  i74:'<strong>100</strong> → Aborda estranhos quando necessário, sem dificuldade. <strong>75</strong> → Faz contato com contexto estruturado ou mediação eventual. <strong>50</strong> → Faz contato com ajuda direta de terceiros. <strong>25</strong> → Não faz contato com estranhos.',
+  i75:'<strong>100</strong> → Cria e mantém relacionamentos íntimos. <strong>75</strong> → Mantém com suporte terapêutico ou comunicação assistida. <strong>50</strong> → Mantém com ajuda constante. <strong>25</strong> → Não mantém relações íntimas funcionais.',
+  i76:'<strong>100</strong> → Participa de grupos e eventos da comunidade. <strong>75</strong> → Participa com transporte acessível ou acompanhante eventual. <strong>50</strong> → Participa com ajuda de terceiros que organizam tudo. <strong>25</strong> → Não participa de vida comunitária.',
+  i77:'<strong>100</strong> → Participa de lazer e cultura sozinho. <strong>75</strong> → Participa com atividades acessíveis ou acompanhante eventual. <strong>50</strong> → Participa com ajuda de terceiros. <strong>25</strong> → Não participa de lazer ou recreação.',
+  i78:'<strong>100</strong> → Reconhece emoções e reage de forma adequada. <strong>75</strong> → Regula emoções com terapia ou rotina estruturada — por conta própria. <strong>50</strong> → Regula emoções com ajuda ativa de terceiros. <strong>25</strong> → Não regula emoções nem comportamento.',
+  i79:'<strong>100</strong> → Exerce direitos de cidadania, vota, participa de decisões. <strong>75</strong> → Participa com material acessível ou mediação eventual. <strong>50</strong> → Participa com ajuda de terceiros que conduzem. <strong>25</strong> → Não participa da vida política ou social.',
+};
+// ═══════════════════════════════════════════════
+// IFBRM — 7 DOMÍNIOS · 63 ITENS
+// ═══════════════════════════════════════════════
+const IFBRM=[
+{dom:"1. Aprendizagem e aplicação de conhecimento",items:[
+{id:'i11',label:'1.1 Observar',code:'d110',script:'Como está sua visão? Consegue enxergar, reconhecer rostos, ler textos? Usa óculos?',descs:{100:'Reconhece e interpreta estímulos visuais de forma independente',75:'Reconhece com óculos, lupa, ampliação ou iluminação especial',50:'Realiza com auxílio de terceiros que descrevem o que deve ser observado',25:'Não reconhece estímulos visuais; depende integralmente de terceiros'}},
+{id:'i12',label:'1.2 Ouvir',code:'d115',script:'Como está sua audição? Consegue ouvir conversas? Usa aparelho auditivo?',descs:{100:'Capta e interpreta sons e fala de forma independente, sem adaptações',75:'Capta com aparelho auditivo, ambiente silencioso ou leitura labial',50:'Compreende apenas com auxílio de terceiros que repetem ou traduzem',25:'Não capta sons ou fala; depende integralmente de terceiros'}},
+{id:'i13',label:'1.3 Calcular',code:'d150',script:'Consegue fazer contas simples — troco, parcelas, prazos — sem dificuldade?',descs:{100:'Realiza operações matemáticas de forma independente',75:'Realiza com calculadora, mais tempo ou estratégias compensatórias',50:'Realiza apenas com auxílio de terceiros',25:'Não realiza operações matemáticas; depende integralmente de terceiros'}},
+{id:'i14',label:'1.4 Adquirir habilidades',code:'d155',script:'Quando precisa aprender algo novo — tarefa, aplicativo — consegue aprender com facilidade?',descs:{100:'Aprende e executa novos conjuntos de ações de forma independente',75:'Aprende com mais repetições, estratégias diferenciadas ou apoio técnico',50:'Aprende apenas com auxílio direto de terceiros',25:'Não adquire novas habilidades; depende integralmente de terceiros'}},
+{id:'i15',label:'1.5 Concentrar atenção',code:'d160',script:'Consegue se concentrar em uma tarefa por um tempo razoável sem se distrair muito?',descs:{100:'Mantém atenção pelo tempo necessário, de forma independente',75:'Mantém atenção com pausas frequentes, ambiente controlado ou apoio',50:'Mantém atenção apenas com supervisão ativa ou direcionamento constante',25:'Não consegue direcionar ou manter atenção; depende integralmente de terceiros'}},
+{id:'i16',label:'1.6 Resolver problemas',code:'d175',script:'Quando aparece um problema do dia a dia, consegue pensar em como resolver?',descs:{100:'Identifica problemas e implementa soluções de forma independente',75:'Resolve com mais tempo, estratégias simplificadas ou suporte técnico',50:'Participa apenas com auxílio de terceiros que estruturam o raciocínio',25:'Não resolve problemas; depende integralmente de terceiros'}},
+{id:'i17',label:'1.7 Tomar decisões',code:'d177',script:'Consegue tomar decisões sozinho(a) — sobre compras, trabalho, saúde?',descs:{100:'Faz escolhas e avalia consequências de forma independente',75:'Toma decisões com mais tempo, apoio informacional ou opções simplificadas',50:'Participa do processo decisório apenas com auxílio de terceiros',25:'Não toma decisões; depende integralmente de terceiros'}},
+{id:'i18',label:'1.8 Tarefa única',code:'d210',script:'Consegue iniciar e terminar uma tarefa simples por conta própria, sem supervisão?',descs:{100:'Inicia, organiza e conclui uma tarefa de forma independente',75:'Realiza com reorganização do ambiente, mais tempo ou suporte técnico',50:'Participa de alguma etapa com auxílio de terceiros',25:'Não realiza nenhuma etapa; depende integralmente de terceiros'}},
+{id:'i19',label:'1.9 Tarefas múltiplas',code:'d220',script:'Consegue seguir várias instruções em sequência ou fazer várias coisas ao mesmo tempo?',descs:{100:'Realiza tarefas múltiplas e simultâneas de forma independente',75:'Realiza com sequenciamento assistido, listas de verificação ou mais tempo',50:'Participa de etapas isoladas com auxílio de terceiros',25:'Não realiza tarefas múltiplas; depende integralmente de terceiros'}},
+]},
+{dom:"2. Comunicação",items:[
+{id:'i21',label:'2.1 Compreensão oral',code:'d310',script:'Consegue entender o que as pessoas falam em conversa comum?',descs:{100:'Compreende mensagens orais de forma independente',75:'Compreende com fala mais lenta, repetição, ambiente silencioso ou apoio visual',50:'Compreende apenas mensagens simples com auxílio de terceiros',25:'Não compreende mensagens orais; depende integralmente de terceiros'}},
+{id:'i22',label:'2.2 Compreensão não verbal',code:'d315',script:'Consegue entender gestos, sinais ou imagens que as pessoas usam?',descs:{100:'Compreende gestos, símbolos e desenhos de forma independente',75:'Compreende com sistemas aumentativos, símbolos específicos ou mais tempo',50:'Compreende apenas com auxílio de terceiros que contextualizam',25:'Não compreende mensagens não verbais; depende integralmente de terceiros'}},
+{id:'i23',label:'2.3 Falar',code:'d330',script:'Consegue falar com clareza? As pessoas entendem o que você diz sem dificuldade?',descs:{100:'Comunica verbalmente com clareza, de forma independente',75:'Comunica-se com fala mais lenta, dispositivo de amplificação ou estratégias alternativas',50:'Produz mensagens inteligíveis apenas em contextos simplificados',25:'Não produz fala funcional; depende integralmente de sistemas alternativos ou terceiros'}},
+{id:'i24',label:'2.4 Produção não verbal',code:'d335',script:'Usa gestos ou expressões para se comunicar quando necessário?',descs:{100:'Utiliza gestos, símbolos e expressões de forma intencional e adequada',75:'Produz mensagens não verbais com sistemas aumentativos ou mais tempo',50:'Produz apenas com auxílio de terceiros que estruturam ou interpretam',25:'Não produz mensagens não verbais funcionais; depende integralmente de terceiros'}},
+{id:'i25',label:'2.5 Compreensão escrita',code:'d325',script:'Consegue ler um texto e entender o que está escrito — bilhete, notícia, contrato?',descs:{100:'Compreende textos escritos de forma independente',75:'Compreende com fontes ampliadas, leitores de tela, textos simplificados ou mais tempo',50:'Compreende apenas mensagens simples com auxílio de terceiros',25:'Não compreende mensagens escritas; depende integralmente de terceiros'}},
+{id:'i26',label:'2.6 Produção escrita',code:'d345',script:'Consegue escrever — mensagem, formulário — de forma que outros entendam?',descs:{100:'Produz textos escritos de forma independente',75:'Produz com teclado adaptado, corretor ortográfico ou ditado por voz',50:'Produz mensagens simples apenas com auxílio de terceiros',25:'Não produz mensagens escritas; depende integralmente de terceiros'}},
+{id:'i27',label:'2.7 Conversação',code:'d350',script:'Consegue manter uma conversa do começo ao fim com outras pessoas?',descs:{100:'Inicia, mantém e encerra diálogos de forma independente',75:'Conversa com intérprete de Libras, dispositivo de comunicação ou contexto estruturado',50:'Participa de conversas simples com auxílio de terceiros que mediam',25:'Não participa de conversas; depende integralmente de terceiros'}},
+{id:'i28',label:'2.8 Discutir',code:'d355',script:'Consegue debater um assunto, defender sua opinião?',descs:{100:'Inicia, mantém e encerra análises argumentativas de forma independente',75:'Participa com mais tempo, suporte informacional ou contexto simplificado',50:'Participa apenas com auxílio de terceiros que estruturam os argumentos',25:'Não participa de discussões; depende integralmente de terceiros'}},
+]},
+{dom:"3. Mobilidade",items:[
+{id:'i31',label:'3.1 Mudar / manter posição',code:'d410/415',script:'Consegue sentar, levantar, deitar e manter essas posições pelo tempo necessário?',descs:{100:'Muda e mantém posições corporais de forma independente e segura',75:'Realiza com barras de apoio, mobiliário adaptado, órteses ou mais tempo',50:'Realiza com auxílio físico parcial de terceiros',25:'Não muda nem mantém posições; depende integralmente de terceiros'}},
+{id:'i32',label:'3.2 Auto transferências',code:'d420',script:'Consegue se transferir — da cama para cadeira, por exemplo — sem ajuda?',descs:{100:'Move-se de uma superfície para outra de forma independente e segura',75:'Realiza com tábua de transferência, barras ou superfícies adaptadas',50:'Realiza com auxílio físico parcial de terceiros',25:'Não realiza transferências; depende integralmente de terceiros'}},
+{id:'i33',label:'3.3 Alcançar / transportar',code:'d430',script:'Consegue pegar objetos, carregá-los e colocá-los em outro lugar?',descs:{100:'Alcança, levanta, transporta e pousa objetos de forma independente',75:'Realiza com objetos leves, extensores ou superfícies adaptadas',50:'Realiza com auxílio físico de terceiros em parte das etapas',25:'Não alcança nem transporta objetos; depende integralmente de terceiros'}},
+{id:'i34',label:'3.4 Deslocar em casa',code:'d4600',script:'Consegue se mover por toda a sua casa — entre cômodos — sem ajuda?',descs:{100:'Anda e move-se por todos os ambientes da casa de forma independente',75:'Desloca-se com cadeira de rodas, andador, bengala ou modificações domésticas',50:'Desloca-se com auxílio físico de terceiros em parte do trajeto',25:'Não se desloca dentro de casa; depende integralmente de terceiros'}},
+{id:'i35',label:'3.5 Outros edifícios',code:'d4601',script:'Consegue se deslocar em outros lugares além de casa, como mercado, hospital?',descs:{100:'Anda e desloca-se por edifícios públicos de forma independente',75:'Desloca-se com rampas, elevadores, cadeira de rodas ou dispositivos de mobilidade',50:'Desloca-se com auxílio físico de terceiros em parte do trajeto',25:'Não se desloca em outros edifícios; depende integralmente de terceiros'}},
+{id:'i36',label:'3.6 Fora de casa',code:'d4602',script:'Consegue sair de casa e andar na rua, próximo ou longe, sem ajuda?',descs:{100:'Caminha e desloca-se por vias públicas de forma independente',75:'Desloca-se com cadeira de rodas, bengala, rota planejada ou acompanhante ocasional',50:'Desloca-se fora de casa apenas com auxílio físico constante de terceiros',25:'Não se desloca fora de casa; depende integralmente de terceiros'}},
+{id:'i37',label:'3.7 Transp. coletivo',code:'d4702',script:'Consegue usar ônibus, metrô ou outro transporte público sozinho(a)?',descs:{100:'Utiliza transportes coletivos de forma independente',75:'Utiliza com veículo acessível, rotas específicas ou tecnologia assistiva',50:'Utiliza apenas com auxílio físico ou orientação constante de terceiros',25:'Não utiliza transporte coletivo; depende integralmente de terceiros'}},
+{id:'i38',label:'3.8 Transp. individual',code:'d4701',script:'Consegue entrar e sair de carro como passageiro sem precisar de ajuda?',descs:{100:'Utiliza veículo individual como passageiro de forma independente',75:'Utiliza com veículo adaptado, transferência assistida ou assento especial',50:'Utiliza com auxílio físico de terceiros para entrar ou sair',25:'Não utiliza transporte individual sem assistência integral'}},
+]},
+{dom:"4. Cuidados pessoais",items:[
+{id:'i41',label:'4.1 Comer',code:'d550',script:'Consegue comer sozinho(a), usando talheres normais?',descs:{100:'Ingere alimentos de forma independente, com utensílios convencionais',75:'Come com utensílios adaptados, textura modificada, mais tempo ou posicionamento especial',50:'Come com auxílio físico de terceiros em parte das etapas',25:'Não come de forma independente; depende integralmente de terceiros'}},
+{id:'i42',label:'4.2 Beber',code:'d560',script:'Consegue beber líquidos sozinho(a), sem engasgar ou precisar de adaptação?',descs:{100:'Bebe líquidos de forma independente, com recipiente convencional',75:'Bebe com canudos, copos adaptados, espessantes ou posicionamento especial',50:'Bebe com auxílio físico de terceiros em parte das etapas',25:'Não bebe de forma independente; depende integralmente de terceiros'}},
+{id:'i43',label:'4.3 Lavar-se',code:'d510',script:'Consegue tomar banho sozinho(a), lavar e secar todo o corpo?',descs:{100:'Lava e seca todo o corpo de forma independente',75:'Lava-se com banqueta de banho, barras de apoio, esponjas de cabo longo ou supervisão',50:'Lava-se com auxílio físico de terceiros em partes do corpo ou etapas',25:'Não se lava; depende integralmente de terceiros'}},
+{id:'i44',label:'4.4 Vestir-se',code:'d540',script:'Consegue se vestir e calçar sozinho(a)?',descs:{100:'Veste e retira roupas e calçados de forma independente',75:'Veste-se com velcro, elásticos, calçadores, mais tempo ou supervisão de sequência',50:'Veste-se com auxílio físico de terceiros em partes do processo',25:'Não se veste nem retira roupas; depende integralmente de terceiros'}},
+{id:'i45',label:'4.5 Cuidar do corpo',code:'d520',script:'Consegue cuidar do seu corpo — escovar dentes, pentear cabelo, cortar unhas?',descs:{100:'Realiza cuidados com pele, cabelo, unhas, dentes de forma independente',75:'Realiza com produtos específicos, utensílios adaptados, mais tempo ou supervisão',50:'Realiza com auxílio físico de terceiros em parte dos cuidados',25:'Não realiza cuidados com partes do corpo; depende integralmente de terceiros'}},
+{id:'i46',label:'4.6 Micção',code:'d5300',script:'Consegue controlar a urina, ir ao banheiro na hora e fazer higiene depois?',descs:{100:'Prevê, controla e realiza a micção de forma independente',75:'Controla com fralda preventiva, cateterismo autoadministrado ou rotina específica',50:'Realiza com auxílio de terceiros em parte do processo',25:'Não controla a micção; depende integralmente de terceiros'}},
+{id:'i47',label:'4.7 Defecação',code:'d5301',script:'Consegue controlar o intestino, ir ao banheiro na hora e fazer higiene depois?',descs:{100:'Prevê, controla e realiza a defecação de forma independente',75:'Controla com rotina dietética específica, adaptações no banheiro ou mais tempo',50:'Realiza com auxílio de terceiros em parte do processo',25:'Não controla a defecação; depende integralmente de terceiros'}},
+{id:'i48',label:'4.8 Identificar doenças',code:'d570',script:'Consegue perceber quando não está bem de saúde e tomar as providências?',descs:{100:'Reconhece sinais de agravo à saúde e adota autocuidado de forma independente',75:'Identifica com lembretes, supervisão periódica ou suporte informacional',50:'Identifica apenas com auxílio de terceiros que interpretam e orientam',25:'Não identifica sinais de agravo à saúde; depende integralmente de terceiros'}},
+]},
+{dom:"5. Vida doméstica",items:[
+{id:'i51',label:'5.1 Refeições simples',code:'d6300',script:'Consegue preparar um lanche ou refeição simples para si mesmo(a)?',descs:{100:'Prepara lanches e refeições simples de forma independente',75:'Prepara com utensílios adaptados, microondas, receitas simplificadas ou supervisão',50:'Participa de alguma etapa com auxílio físico ou orientação constante de terceiros',25:'Não prepara nenhuma refeição; depende integralmente de terceiros'}},
+{id:'i52',label:'5.2 Cozinhar',code:'d6301',script:'Consegue cozinhar refeições completas com vários ingredientes?',descs:{100:'Planeja, organiza e executa refeições complexas de forma independente',75:'Cozinha com utensílios adaptados, fogão de indução, receitas modificadas ou supervisão',50:'Participa de etapas isoladas com auxílio de terceiros',25:'Não cozinha; depende integralmente de terceiros'}},
+{id:'i53',label:'5.3 Tarefas domésticas',code:'d640',script:'Consegue fazer limpeza e organização da sua casa — varrer, lavar louça, arrumar?',descs:{100:'Executa limpeza, organização e manutenção do lar de forma independente',75:'Realiza com equipamentos adaptados, reorganização do espaço ou mais tempo',50:'Realiza tarefas simples com auxílio de terceiros em parte das etapas',25:'Não realiza tarefas domésticas; depende integralmente de terceiros'}},
+{id:'i54',label:'5.4 Manutenção de objetos',code:'d650',script:'Consegue cuidar dos seus objetos pessoais — guardar, conservar?',descs:{100:'Mantém e conserva utensílios e objetos pessoais de forma independente',75:'Realiza com ferramentas adaptadas, supervisão ou assistência técnica',50:'Realiza com auxílio de terceiros em parte das tarefas',25:'Não realiza manutenção de objetos; depende integralmente de terceiros'}},
+{id:'i55',label:'5.5 Cuidar dos outros',code:'d660',script:'Consegue cuidar de outras pessoas da família quando necessário?',descs:{100:'Auxilia familiares em cuidados de saúde e alimentação de forma independente',75:'Cuida de outros com suporte técnico, simplificação das tarefas ou supervisão',50:'Participa de cuidados simples com auxílio de terceiros',25:'Não presta cuidados a outros; depende integralmente de terceiros'}},
+{id:'i56',label:'5.6 Compras / serviços',code:'d620',script:'Consegue fazer compras sozinho(a) — ir ao mercado, pagar, trazer as compras?',descs:{100:'Seleciona, compra e transporta bens e serviços de forma independente',75:'Realiza compras com internet, catálogo, acompanhante ocasional ou mais tempo',50:'Realiza compras simples com auxílio de terceiros',25:'Não realiza compras nem contrata serviços; depende integralmente de terceiros'}},
+{id:'i57',label:'5.7 Obter moradia',code:'d610',script:'Consegue buscar e organizar um lugar para morar de forma independente?',descs:{100:'Busca, negocia e obtém moradia de forma independente',75:'Obtém moradia com suporte informacional, intermediário ou simplificação',50:'Participa com auxílio de terceiros que conduzem as negociações',25:'Não obtém moradia de forma autônoma; depende integralmente de terceiros'}},
+{id:'i58',label:'5.8 Rotina diária',code:'d230',script:'Consegue planejar e organizar sua rotina do dia a dia sem ajuda?',descs:{100:'Planeja, organiza e cumpre as demandas do dia a dia de forma independente',75:'Planeja com agendas, alarmes, listas de tarefas ou supervisão periódica',50:'Organiza a rotina apenas com auxílio de terceiros',25:'Não planeja nem organiza a rotina; depende integralmente de terceiros'}},
+]},
+{dom:"6. Educação, trabalho e vida econômica",items:[
+{id:'i61',label:'6.1 Educação informal',code:'d810',script:'Consegue aprender coisas novas em casa, com família ou amigos, fora da escola?',descs:{100:'Aprende em ambientes não institucionais de forma independente',75:'Aprende com mais repetições, materiais modificados ou suporte tecnológico',50:'Aprende apenas com auxílio direto de terceiros',25:'Não aprende em contextos informais; depende integralmente de terceiros'}},
+{id:'i62',label:'6.2 Educação formal',code:'d820',script:'Consegue frequentar escola, fazer tarefas e progredir nos estudos normalmente?',descs:{100:'Frequenta escola regularmente e progride de forma independente',75:'Frequenta com currículo adaptado, tecnologia assistiva ou tempo estendido',50:'Participa com auxílio de terceiros em grande parte do tempo',25:'Não participa de atividades escolares mesmo com suporte'}},
+{id:'i63',label:'6.3 Qualificação profissional',code:'d825',script:'Consegue participar de cursos profissionalizantes ou de formação para o trabalho?',descs:{100:'Participa de programas de formação profissional de forma independente',75:'Qualifica-se com cursos específicos, tecnologia assistiva ou mais tempo',50:'Participa de formação com auxílio direto de terceiros',25:'Não consegue participar de formação profissional; depende integralmente de terceiros'}},
+{id:'i64',label:'6.4 Trabalho remunerado',code:'d850',script:'Consegue trabalhar de forma remunerada — formal ou informal — cumprindo as tarefas exigidas?',descs:{100:'Exerce trabalho remunerado de forma independente, cumprindo tarefas',75:'Trabalha com jornada reduzida, função adaptada, tecnologia assistiva ou ambiente modificado',50:'Trabalha com auxílio de terceiros em grande parte das tarefas',25:'Não exerce trabalho remunerado mesmo com suporte; depende integralmente de terceiros'}},
+{id:'i65',label:'6.5 Conta própria',code:'d8500',script:'Consegue ter negócio próprio ou trabalhar por conta própria de forma independente?',descs:{100:'Desenvolve e gerencia trabalho autônomo de forma independente',75:'Trabalha por conta própria com suporte administrativo ou tecnologia',50:'Mantém atividade própria com auxílio constante de terceiros',25:'Não consegue manter trabalho por conta própria; depende integralmente de terceiros'}},
+{id:'i66',label:'6.7 Manter / progredir',code:'d845',script:'Consegue manter um emprego, progredir no trabalho?',descs:{100:'Busca, mantém e progride em emprego de forma independente',75:'Mantém-se no trabalho com mediação de RH, adaptações funcionais ou suporte técnico',50:'Mantém o emprego com auxílio constante de terceiros',25:'Não consegue manter nem progredir em trabalho; depende integralmente de terceiros'}},
+{id:'i67',label:'6.8 Recursos econômicos',code:'d865',script:'Consegue administrar seu próprio dinheiro — pagar contas, controlar gastos?',descs:{100:'Controla recursos financeiros e garante segurança econômica de forma independente',75:'Administra com aplicativos de controle, curatela parcial ou suporte de familiar',50:'Administra recursos com auxílio de terceiros que supervisionam decisões',25:'Não administra recursos econômicos; depende integralmente de terceiros ou curatela total'}},
+]},
+{dom:"7. Relações, vida comunitária, social e política",items:[
+{id:'i71',label:'7.1 Interação interpessoal',code:'d710',script:'Consegue interagir com outras pessoas de forma adequada ao contexto?',descs:{100:'Interage com pessoas de forma contextualmente adequada, de forma independente',75:'Interage com contextos estruturados, mediação eventual ou suporte de comunicação',50:'Interage em situações simples com auxílio de terceiros que mediam',25:'Não interage adequadamente; depende integralmente de terceiros'}},
+{id:'i72',label:'7.2 Relações familiares',code:'d760',script:'Consegue manter relações com a família e pessoas próximas de forma saudável?',descs:{100:'Cria e mantém vínculos familiares de forma independente',75:'Mantém relações familiares com mediação ocasional ou suporte terapêutico',50:'Mantém vínculos apenas com auxílio constante de terceiros',25:'Não mantém relações familiares funcionais; depende integralmente de terceiros'}},
+{id:'i73',label:'7.3 Ambientes formais',code:'d740',script:'Consegue criar e manter relacionamentos em ambientes formais, como no trabalho?',descs:{100:'Cria e mantém relações em ambientes formais de forma independente',75:'Mantém relações formais com mediação de RH ou apoio terapêutico',50:'Mantém relações formais apenas com auxílio direto de terceiros',25:'Não mantém relações em ambientes formais; depende integralmente de terceiros'}},
+{id:'i74',label:'7.4 Relações com estranhos',code:'d730',script:'Consegue se relacionar com pessoas desconhecidas quando necessário?',descs:{100:'Estabelece contatos temporários com estranhos de forma independente',75:'Estabelece contatos com contexto estruturado, mediação eventual ou suporte',50:'Estabelece contatos com estranhos apenas com auxílio de terceiros',25:'Não estabelece contatos com estranhos; depende integralmente de terceiros'}},
+{id:'i75',label:'7.5 Relações íntimas',code:'d770',script:'Consegue manter relacionamentos íntimos ou afetivos?',descs:{100:'Cria e mantém relacionamentos íntimos de forma independente',75:'Mantém relações íntimas com suporte terapêutico, mediação ou comunicação assistida',50:'Mantém relações íntimas com auxílio constante de terceiros',25:'Não mantém relações íntimas funcionais; depende integralmente de terceiros'}},
+{id:'i76',label:'7.6 Vida comunitária',code:'d910',script:'Consegue participar de atividades da comunidade — grupos, eventos locais?',descs:{100:'Participa de atividades sociais comunitárias de forma independente',75:'Participa com transporte acessível, ambiente adaptado ou acompanhante ocasional',50:'Participa com auxílio de terceiros que conduzem e mediam a inserção',25:'Não participa de vida comunitária; depende integralmente de terceiros'}},
+{id:'i77',label:'7.7 Cultura / lazer',code:'d920',script:'Consegue participar de atividades de lazer, cultura ou recreação?',descs:{100:'Participa de atividades de lazer e cultura de forma independente',75:'Participa com atividades acessíveis, tecnologia assistiva ou acompanhante ocasional',50:'Participa com auxílio direto de terceiros que organizam e conduzem',25:'Não participa de atividades de lazer ou recreação; depende integralmente de terceiros'}},
+{id:'i78',label:'7.8 Lidar com emoções',code:'d720',script:'Consegue reconhecer suas emoções e reagir de forma adequada nas interações?',descs:{100:'Reconhece emoções e responde de forma adequada, de forma independente',75:'Regula emoções com suporte terapêutico, técnicas de manejo ou rotina estruturada',50:'Regula emoções apenas com auxílio direto de terceiros que intervêm',25:'Não regula emoções nem adequa comportamento; depende integralmente de terceiros'}},
+{id:'i79',label:'7.9 Cidadania',code:'d950',script:'Consegue exercer seus direitos de cidadão — votar, participar de decisões coletivas?',descs:{100:'Participa da vida política e social, exerce direitos de cidadania de forma independente',75:'Participa com suporte informacional, material acessível ou mediação eventual',50:'Participa com auxílio de terceiros que orientam e conduzem',25:'Não participa da vida política ou social; depende integralmente de terceiros'}},
+]},
+];
+// ═══════════════════════════════════════════════
+// SCORING
+// ═══════════════════════════════════════════════
+function calcScores(){
+  if(S.scoreCache)return S.scoreCache;
+  const ds={};
+  IFBRM.forEach((d,di)=>{
+    const sc=d.items.map(it=>S.data[it.id]).filter(v=>v!=null&&v!=='');
+    if(sc.length>0){
+      const sum=sc.reduce((a,b)=>a+b,0);
+      ds['d'+(di+1)]={mean:Math.round(sum/sc.length),sum,count:sc.length,scores:sc};
+    }
+  });
+  const allV=IFBRM.flatMap(d=>d.items.map(it=>S.data[it.id])).filter(v=>v!=null&&v!=='');
+  const rawSum=allV.reduce((a,b)=>a+b,0);
+  const types=['C1','C2','C3','C4','C5'].filter(t=>gb(t));
+  // ─── Fuzzy: aplica a MENOR pontuação do domínio a todos os itens (IFBrM §5.3)
+  const FUZZY_DOMS={C1:[2,3],C2:[1,6],C3:[2,4],C4:[0,5],C5:[5,6]};
+  const EMBLEM={
+    C1:()=>gb('fz_C1_cad')||gb('fz_C1_nohelp'),
+    C2:()=>gb('fz_C2_early')||gb('fz_C2_nohelp'),
+    C3:()=>gb('fz_C3_born')||gb('fz_C3_nohelp'),
+    C4:()=>gb('fz_C4_alone')||gb('fz_C4_nohelp'),
+    C5:()=>gb('fz_C5_disc')||gb('fz_C5_nohelp'),
+  };
+  // Build fuzzyDomMinScore: domain-index → min score to spread across that domain
+  const fuzzyDomMinScore={};
+  types.forEach(t=>{
+    (FUZZY_DOMS[t]||[]).forEach(di=>{
+      const dsc=ds['d'+(di+1)];if(!dsc)return;
+      const sc=dsc.scores;
+      const autoTrigger=sc.some(v=>v===25||v===50)||sc.every(v=>v===75);
+      const emblTrigger=EMBLEM[t]?EMBLEM[t]():false;
+      if(autoTrigger||emblTrigger){
+        const minScore=Math.min(...sc);
+        if(fuzzyDomMinScore[di]===undefined||minScore<fuzzyDomMinScore[di])
+          fuzzyDomMinScore[di]=minScore;
+      }
+    });
+  });
+  let fuzzySum=0;
+  IFBRM.forEach((d,di)=>{
+    const dsc=ds['d'+(di+1)];if(!dsc)return;
+    const sc=dsc.scores;
+    fuzzySum+=fuzzyDomMinScore[di]!==undefined
+      ?sc.length*fuzzyDomMinScore[di]
+      :sc.reduce((a,b)=>a+b,0);
+  });
+  const fuzzyAtivos=Object.keys(S.data).filter(k=>k.startsWith('fz_')&&S.data[k]===true);
+  return S.scoreCache={ds,rawSum,fuzzySum,filled:allV.length,types,fuzzyAtivos,fuzzyDomMinScore};
+}
+
+// ═══════════════════════════════════════════════
+// ITEM MIN AGE — itens só aplicáveis a partir de certa faixa
+// ═══════════════════════════════════════════════
+const ITEM_MIN_AGE={
+  i11:'0-4',i12:'0-4',i13:'5-10',i14:'0-4',i15:'0-4',i16:'5-10',i17:'5-10',i18:'0-4',i19:'0-4',
+  i21:'0-4',i22:'0-4',i23:'0-4',i24:'0-4',i25:'5-10',i26:'5-10',i27:'0-4',i28:'5-10',
+  i31:'0-4',i32:'0-4',i33:'0-4',i34:'0-4',i35:'0-4',i36:'5-10',i37:'11-17',i38:'5-10',
+  i41:'0-4',i42:'0-4',i43:'5-10',i44:'0-4',i45:'5-10',i46:'0-4',i47:'0-4',i48:'0-4',
+  i51:'5-10',i52:'11-17',i53:'5-10',i54:'5-10',i55:'5-10',i56:'5-10',i57:'18-59',i58:'11-17',
+  i61:'0-4',i62:'5-10',i63:'11-17',i64:'11-17',i65:'18-59',i66:'11-17',i67:'18-59',
+  i71:'0-4',i72:'0-4',i73:'5-10',i74:'5-10',i75:'18-59',i76:'5-10',i77:'5-10',i78:'5-10',i79:'11-17',
+};
+const AGE_ORDER={'0-4':0,'5-10':1,'11-17':2,'18-59':3,'60+':3};
+function itemApplies(id,ag){
+  return (AGE_ORDER[ag]||0)>=(AGE_ORDER[ITEM_MIN_AGE[id]||'0-4']||0);
+}
+
+// ═══════════════════════════════════════════════
+// COMPONENTE DE PONDERAÇÃO (IFBrM §5.4)
+// Se itens-chave NÃO atingem o limiar → rebaixa classificação 1 nível
+// ═══════════════════════════════════════════════
+const PONDERACAO={
+  '0-4': {
+    C1:['i14','i34'],C2:['i14','i27'],C3:['i14','i34'],C4:['i14','i18'],C5:['i14','i19'],
+  },
+  '5-10':{
+    C1:['i14','i43','i51','i62'],C2:['i14','i27','i56','i62'],C3:['i14','i25','i44','i62'],
+    C4:['i14','i19','i44','i62'],C5:['i16','i51','i56','i62'],
+  },
+  '11-17':{
+    C1:['i19','i44','i51','i53','i56'],C2:['i14','i23','i27','i56','i62'],
+    C3:['i14','i25','i26','i44','i62'],C4:['i16','i19','i44','i58','i62'],C5:['i16','i45','i56','i58','i62'],
+  },
+  '18-59':{
+    C1:['i51','i53','i56','i64','i77'],C2:['i27','i56','i62','i71','i77'],
+    C3:['i14','i25','i56','i64','i71'],C4:['i16','i56','i62','i71','i79'],C5:['i56','i58','i64','i67','i71'],
+  },
+  '60+':{
+    C1:['i45','i51','i65'],C2:['i19','i55','i56'],C3:['i51','i55','i56'],
+    C4:['i16','i56','i67'],C5:['i55','i58','i67'],
+  },
+};
+// Limiares por faixa: retorna true se itens-chave ATINGEM o limiar (ponderação OK)
+function pondThresholdMet(keyScores,ag){
+  if(!keyScores.length)return true;
+  const s25=keyScores.filter(v=>v===25).length;
+  const s50=keyScores.filter(v=>v===50).length;
+  const s75=keyScores.filter(v=>v===75).length;
+  if(ag==='0-4')  return !(s25>=1||s50>=1||s75>=2);
+  if(ag==='60+')  return !(s25>=1||s50>=2||s75>=3);
+  return !(s25>=1||s50>=2||s75>=4); // 5-10, 11-17, 18-59
+}
+function applyPonderacao(clsObj,ag,types,data){
+  if(!clsObj)return null;
+  if(clsObj.cls==='Insuficiente')return{...clsObj,ponderado:false};
+  const pondItems=PONDERACAO[ag]||{};
+  let keyIds=new Set();
+  types.forEach(t=>{(pondItems[t]||[]).forEach(id=>keyIds.add(id));});
+  if(!keyIds.size)return{...clsObj,ponderado:false};
+  const keyScores=[...keyIds].map(id=>data[id]).filter(v=>v!=null&&v!=='');
+  if(!keyScores.length)return{...clsObj,ponderado:false};
+  const met=pondThresholdMet(keyScores,ag);
+  if(met)return{...clsObj,ponderado:false};
+  // rebaixa 1 nível
+  const DOWN={Grave:'Moderado',Moderado:'Leve',Leve:'Insuficiente'};
+  const COR={Grave:'#ef4444',Moderado:'#f59e0b',Leve:'#84cc16',Insuficiente:'#10b981'};
+  const BG={Grave:'cls-grave',Moderado:'cls-moderado',Leve:'cls-leve',Insuficiente:'cls-insuf'};
+  const nc=DOWN[clsObj.cls]||clsObj.cls;
+  return{cls:nc,cor:COR[nc],bg:BG[nc],ponderado:true,clsAntes:clsObj.cls};
+}
+
+// ═══════════════════════════════════════════════
+// CID-10 — BASE PARA PICKER
+// ═══════════════════════════════════════════════
+const CID_DATA=[
+  // Deficiência Física
+  {c:'G80',d:'Paralisia cerebral',g:'Físico'},
+  {c:'G82',d:'Paraplegia / Tetraplegia',g:'Físico'},
+  {c:'G35',d:'Esclerose múltipla',g:'Físico'},
+  {c:'G71',d:'Distrofia muscular',g:'Físico'},
+  {c:'G12',d:'Atrofia muscular espinhal',g:'Físico'},
+  {c:'G11',d:'Ataxia hereditária',g:'Físico'},
+  {c:'G20',d:'Doença de Parkinson',g:'Físico'},
+  {c:'G40',d:'Epilepsia',g:'Físico'},
+  {c:'M47',d:'Espondilose com mielopatia',g:'Físico'},
+  {c:'M80',d:'Osteoporose com fratura',g:'Físico'},
+  {c:'M05',d:'Artrite reumatoide',g:'Físico'},
+  {c:'M54',d:'Dorsalgia — lesão grave',g:'Físico'},
+  {c:'Q65',d:'Malformação congênita de quadril',g:'Físico'},
+  {c:'Q66',d:'Pé torto congênito',g:'Físico'},
+  {c:'S14',d:'Lesão medular cervical (trauma)',g:'Físico'},
+  {c:'S24',d:'Lesão medular torácica (trauma)',g:'Físico'},
+  {c:'T05',d:'Amputação múltipla de membros',g:'Físico'},
+  {c:'T87',d:'Complicações de amputação',g:'Físico'},
+  {c:'Z89',d:'Ausência adquirida de membro',g:'Físico'},
+  {c:'G93',d:'Outras afecções cerebrais',g:'Físico'},
+  // Deficiência Auditiva
+  {c:'H90.0',d:'Surdez condutiva bilateral',g:'Auditivo'},
+  {c:'H90.3',d:'Surdez neuro-sensorial bilateral',g:'Auditivo'},
+  {c:'H90.6',d:'Surdez mista bilateral',g:'Auditivo'},
+  {c:'H91.0',d:'Perda auditiva ototóxica',g:'Auditivo'},
+  {c:'H91.8',d:'Outras perdas auditivas especificadas',g:'Auditivo'},
+  {c:'Q16',d:'Malformação congênita do ouvido',g:'Auditivo'},
+  {c:'H83',d:'Outras doenças do ouvido interno',g:'Auditivo'},
+  // Deficiência Visual
+  {c:'H54.0',d:'Cegueira bilateral',g:'Visual'},
+  {c:'H54.2',d:'Baixa visão bilateral',g:'Visual'},
+  {c:'H54.4',d:'Cegueira unilateral',g:'Visual'},
+  {c:'H35',d:'Outras afecções retinianas',g:'Visual'},
+  {c:'H40',d:'Glaucoma',g:'Visual'},
+  {c:'H43',d:'Afecções do vítreo',g:'Visual'},
+  {c:'H47',d:'Afecções do nervo óptico',g:'Visual'},
+  {c:'Q11',d:'Anoftalmia / microftalmia congênita',g:'Visual'},
+  {c:'Q12',d:'Afecções congênitas do cristalino',g:'Visual'},
+  // Deficiência Intelectual
+  {c:'F70',d:'Retardo mental leve',g:'Intelectual'},
+  {c:'F71',d:'Retardo mental moderado',g:'Intelectual'},
+  {c:'F72',d:'Retardo mental grave',g:'Intelectual'},
+  {c:'F73',d:'Retardo mental profundo',g:'Intelectual'},
+  {c:'F78',d:'Outro retardo mental',g:'Intelectual'},
+  {c:'F84.0',d:'Autismo infantil (TEA)',g:'Intelectual'},
+  {c:'F84.1',d:'Autismo atípico (TEA)',g:'Intelectual'},
+  {c:'F84.5',d:'Síndrome de Asperger (TEA)',g:'Intelectual'},
+  {c:'Q90',d:'Síndrome de Down (trissomia 21)',g:'Intelectual'},
+  {c:'Q87',d:'Síndromes malformativas congênitas',g:'Intelectual'},
+  {c:'Q05',d:'Espinha bífida',g:'Intelectual'},
+  {c:'F88',d:'Outros transtornos do desenvolvimento',g:'Intelectual'},
+  {c:'F81',d:'Transtornos específicos do aprendizado',g:'Intelectual'},
+  // Deficiência Mental / Psicossocial
+  {c:'F20',d:'Esquizofrenia',g:'Mental'},
+  {c:'F25',d:'Transtorno esquizoafetivo',g:'Mental'},
+  {c:'F31',d:'Transtorno bipolar — episódio atual',g:'Mental'},
+  {c:'F32',d:'Episódio depressivo grave',g:'Mental'},
+  {c:'F33',d:'Transtorno depressivo recorrente',g:'Mental'},
+  {c:'F41',d:'Transtornos ansiosos graves',g:'Mental'},
+  {c:'F42',d:'Transtorno obsessivo-compulsivo',g:'Mental'},
+  {c:'F43',d:'Reação ao estresse / TEPT',g:'Mental'},
+  {c:'F60',d:'Transtorno de personalidade',g:'Mental'},
+  {c:'F10',d:'Transtornos por uso de álcool',g:'Mental'},
+  {c:'F19',d:'Transtornos por múltiplas substâncias',g:'Mental'},
+  {c:'F50',d:'Transtornos alimentares graves',g:'Mental'},
+  // Outras causas comuns de impedimento
+  {c:'I69',d:'Sequela de AVC',g:'Outros'},
+  {c:'E11',d:'Diabetes mellitus tipo 2 — complicações',g:'Outros'},
+  {c:'E10',d:'Diabetes mellitus tipo 1',g:'Outros'},
+  {c:'N18',d:'Doença renal crônica',g:'Outros'},
+  {c:'J44',d:'Doença pulmonar obstrutiva crônica (DPOC)',g:'Outros'},
+  {c:'B20',d:'Doença pelo HIV',g:'Outros'},
+  {c:'C00-C97',d:'Neoplasia maligna — sequelas',g:'Outros'},
+  {c:'Z99',d:'Dependência de tecnologia assistiva',g:'Outros'},
+];
+const CID_MAP=Object.fromEntries(CID_DATA.map(x=>[x.c,x.d]));
+function getCidLabel(c){return CID_MAP[c]||'';}
+function cidSearch(q){
+  const dd=document.getElementById('cid_dropdown');
+  if(!dd)return;
+  const v=(q||'').trim().toUpperCase();
+  if(!v){dd.style.display='none';return;}
+  const res=CID_DATA.filter(x=>x.c.startsWith(v)||x.d.toUpperCase().includes(v)||x.g.toUpperCase().includes(v)).slice(0,12);
+  if(!res.length){dd.style.display='none';return;}
+  const grpColors={Físico:'#fee2e2',Auditivo:'#ede9fe',Visual:'#fef9c3',Intelectual:'#dbeafe',Mental:'#d1fae5',Outros:'#f3f4f6'};
+  dd.innerHTML=res.map(x=>`<div class="cid-item" onclick="selectCid('${x.c}','${x.d.replace(/'/g,"\'")}')">
+    <strong>${x.c}</strong><span>${x.d}</span>
+    <span style="float:right;font-size:9px;padding:1px 5px;border-radius:8px;background:${grpColors[x.g]||'#f3f4f6'};color:#374151">${x.g}</span>
+  </div>`).join('');
+  dd.style.display='block';
+}
+function selectCid(code,label){
+  sv('cid',code);
+  const inp=document.getElementById('cid_search');
+  if(inp)inp.value='';
+  const dd=document.getElementById('cid_dropdown');
+  if(dd)dd.style.display='none';
+  const tag=document.getElementById('cid_selected');
+  if(tag){tag.innerHTML=`<strong>${code}</strong> <span>${label}</span> <button onclick="clearCid()" title="Remover">×</button>`;tag.className='cid-tag';tag.style.display='';}
+}
+function clearCid(){
+  sv('cid','');
+  const tag=document.getElementById('cid_selected');
+  if(tag){tag.innerHTML='';tag.style.display='none';}
+}
+// close dropdown on outside click
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.cid-search-wrap')){
+    const dd=document.getElementById('cid_dropdown');
+    if(dd)dd.style.display='none';
+  }
+});
+function renderRegua(score,r){
+  if(!r)return'';
+  const span=r.max-r.min;
+  const pct=v=>Math.max(0,Math.min(100,((v-r.min)/span)*100));
+  const wGrave=pct(r.grave);
+  const wMod=pct(r.moderado)-pct(r.grave);
+  const wLeve=pct(r.leve)-pct(r.moderado);
+  const wInsuf=100-pct(r.leve);
+  const markerPct=pct(score);
+  return`<div class="regua-wrap">
+    <div style="font-size:11px;font-weight:700;color:#374151;margin-bottom:6px">Régua de Gravidade</div>
+    <div class="regua-bar">
+      <div class="regua-seg" style="width:${wGrave}%;background:#ef4444">GRAVE</div>
+      <div class="regua-seg" style="width:${wMod}%;background:#f59e0b">MODERADO</div>
+      <div class="regua-seg" style="width:${wLeve}%;background:#84cc16">LEVE</div>
+      <div class="regua-seg" style="width:${wInsuf}%;background:#10b981">INSUF.</div>
+      <div class="regua-marker" style="left:${markerPct}%" data-score="${score}"></div>
+    </div>
+    <div class="regua-limits">
+      <span>${r.min}</span>
+      <span>≤${r.grave} Grave</span>
+      <span>≤${r.moderado} Mod.</span>
+      <span>≤${r.leve} Leve</span>
+      <span>${r.max}</span>
+    </div>
+  </div>`;
+}
+function gravClass(v){if(v===undefined||v===null)return'';if(v>=76)return'g100';if(v>=51)return'g75';if(v>=26)return'g50';return'g25';}
+function scClass(v){if(v===100)return's100';if(v===75)return's75';if(v===50)return's50';if(v===25)return's25';return'';}
+function levelLabel(v){if(v>=76)return'Sem limitação';if(v>=51)return'Leve';if(v>=26)return'Moderado';return'Grave';}
+
+// ═══════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════
+function toggleLGPD(checked){
+  sv('lgpd_ok',checked);
+  document.getElementById('start_btn').disabled=!checked;
+}
+function startApp(){
+  if(!gb('lgpd_ok'))return;
+  document.getElementById('welcome').style.display='none';
+  if(!S.startedAt)S.startedAt=Date.now();
+  startTimer();
+  // opt-in email if provided
+  const em=gv('email_opt');
+  if(em&&em.includes('@'))submitOptIn(em);
+}
+function nav(dir){
+  const next=S.cur+dir;
+  if(next<0||next>=TOTAL)return;
+  S.cur=next;
+  render();
+  document.getElementById('content').scrollTop=0;
+}
+function goTo(i){S.cur=i;render();document.getElementById('content').scrollTop=0;}
+
+function render(){
+  renderSidebar();
+  const screen=SCREENS[S.cur];
+  const pct=((S.cur+1)/TOTAL)*100;
+  document.getElementById('pfill').style.width=pct+'%';
+  document.getElementById('sct').textContent=`Etapa ${S.cur+1} de ${TOTAL}`;
+  document.getElementById('bp').disabled=S.cur===0;
+  document.getElementById('bn').disabled=S.cur===TOTAL-1;
+  const isScoring=S.cur>=2&&S.cur<=8;
+  document.getElementById('legend-bar').style.display=isScoring?'flex':'none';
+  document.getElementById('content').innerHTML=screen.render();
+  // auto-submit on result screen
+  if(S.cur===TOTAL-1&&!S.submitted){
+    S.submitted=true;
+    const payload=buildPayload();
+    submitAnonData(payload);
+  }
+}
+function renderSidebar(){
+  document.getElementById('nav').innerHTML=SCREENS.map((s,i)=>{
+    let cls='nav-item';
+    if(i===S.cur)cls+=' active';
+    else if(i<S.cur)cls+=' done';
+    else cls+=' todo';
+    const done=i<S.cur?'✓ ':'';
+    return `<div class="${cls}" onclick="goTo(${i})">${done}${s.nav}</div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════
+function selRadio(k,v,el){
+  sv(k,v);
+  document.querySelectorAll(`[name="${el.querySelector('input').name}"]`).forEach(i=>i.checked=false);
+  el.querySelector('input').checked=true;
+  el.parentElement.querySelectorAll('.ri').forEach(r=>r.classList.remove('sel'));
+  el.classList.add('sel');
+}
+function toggleC(k,el){
+  const v=!gb(k);sv(k,v);
+  el.classList.toggle('sel',v);
+  el.querySelector('input').checked=v;
+}
+function setScore(k,v,el){
+  sv(k,v);
+  el.closest('.db-row').querySelectorAll('.db').forEach(b=>{b.className='db';});
+  el.className='db '+scClass(v);
+  refreshDomainScore(el);
+}
+function refreshDomainScore(el){
+  const card=el.closest('[data-di]');
+  if(!card)return;
+  const di=parseInt(card.dataset.di);
+  const sc=IFBRM[di].items.map(it=>S.data[it.id]).filter(v=>v!=null&&v!=='');
+  const badge=document.getElementById('ds-'+(di+1));
+  if(!badge)return;
+  if(sc.length>0){
+    const _sum=sc.reduce((a,b)=>a+b,0);
+    const _mean=Math.round(_sum/sc.length);
+    badge.textContent=_sum;badge.className='dscore '+gravClass(_mean);
+  }else{badge.textContent='—';badge.className='dscore';}
+}
+function toggleGuide(id){
+  const el=document.getElementById('g-'+id);
+  if(el)el.classList.toggle('open');
+}
+function toast(msg,type=''){
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.className=type;el.style.display='block';
+  clearTimeout(el._t);el._t=setTimeout(()=>el.style.display='none',3500);
+}
+function buildAlerts(){
+  const alerts=[];
+  const{ds,filled}=calcScores();
+  if(filled<30)alerts.push({t:'w',m:`Apenas ${filled} de 57 itens preenchidos. O escore pode não refletir a situação real.`});
+  if(gb('C3')&&S.data['i11']===100)alerts.push({t:'w',m:'Deficiência Visual marcada, mas item "Observar" pontuado como Independente (100). Verifique.'});
+  if(gb('C2')&&S.data['i12']===100)alerts.push({t:'w',m:'Deficiência Auditiva marcada, mas item "Ouvir" pontuado como Independente (100). Verifique.'});
+  if(gv('concl')==='pcd'&&!['C1','C2','C3','C4','C5'].some(t=>gb(t))&&!gb('C_nenhum'))
+    alerts.push({t:'e',m:'Conclusão PcD marcada, mas nenhum tipo de impedimento foi selecionado.'});
+  return alerts;
+}
+
+// ═══════════════════════════════════════════════
+// RENDER IFBRM DOMAINS
+// ═══════════════════════════════════════════════
+function renderIFBRM(domIndexes){
+  const{ds}=calcScores();
+  let h='';
+  domIndexes.forEach(di=>{
+    const d=IFBRM[di];const info=DOMAIN_INFO[di];
+    const domScore=ds['d'+(di+1)];
+    h+=`<div data-di="${di}" style="margin-bottom:28px">
+      <div class="dom-brief">
+        <div class="dom-brief-title">${info.title}</div>
+        <div class="dom-brief-body">${info.body}</div>
+        ${info.tip?`<div class="dom-brief-tip">${info.tip}</div>`:''}
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding-top:8px;border-top:1px solid #bfdbfe">
+          <span style="font-size:11px;color:#6b7280;font-weight:600">${d.items.length} itens neste domínio</span>
+          <span id="ds-${di+1}" class="dscore ${domScore?gravClass(Math.round(domScore.sum/domScore.count)):''}">${domScore?domScore.sum:'—'}</span>
+        </div>
+      </div>`;
+    d.items.forEach(it=>{
+      const sel=S.data[it.id];
+      const answered=sel!==undefined&&sel!=='';
+      const guide=GUIDE[it.id]||'';
+      h+=`<div class="item-card${answered?' answered':''}">
+        <div class="item-top">
+          <div class="item-label">${it.label}</div>
+          <div class="item-code">${it.code||''}</div>
+        </div>`;
+      if(it.script){h+=`<div class="ibox">${it.script}</div>`;}
+      if(guide){
+        h+=`<button class="guide-btn" onclick="toggleGuide('${it.id}')">Como decidir a pontuação?</button>
+            <div class="guide-box" id="g-${it.id}">${guide}</div>`;
+      }
+      h+=`<div class="db-row">`;
+      [[100,'Independente',it.descs[100]],[75,'Adaptado',it.descs[75]],[50,'Com auxílio',it.descs[50]],[25,'Dependente',it.descs[25]]].forEach(([val,lbl,desc])=>{
+        const isSel=sel===val;
+        h+=`<button class="db${isSel?' '+scClass(val):''}" onclick="setScore('${it.id}',${val},this)">
+          <span class="sl">${val} — ${lbl}</span>
+          <span class="sd">${desc||''}</span>
+        </button>`;
+      });
+      h+=`</div></div>`;
+    });
+    h+=`</div>`;
+    if(domIndexes.indexOf(di)<domIndexes.length-1)
+      h+=`<hr style="border:none;border-top:1px solid #f0f4fa;margin:4px 0 28px">`;
+  });
+  return h;
+}
+// ═══════════════════════════════════════════════
+// SCREENS
+// ═══════════════════════════════════════════════
+const SCREENS=[
+
+// 0 — DADOS BÁSICOS
+{nav:'Dados básicos',render:()=>`
+<div class="pg-title">Dados da avaliação</div>
+<div class="pg-sub">Não coletamos dados pessoais identificáveis. Preencha apenas as informações abaixo para o cálculo correto da régua de classificação.</div>
+<div class="fg" style="max-width:520px">
+  <div>
+    <label>Faixa etária do avaliado *</label>
+    ${['0-4','5-10','11-17','18-59','60+'].map(f=>`
+    <div class="ri ${gv('faixa')===f?'sel':''}" onclick="selRadio('faixa','${f}',this)">
+      <input type="radio" name="faixa" ${gv('faixa')===f?'checked':''}> ${f} anos${f==='60+'?' ou mais':''}
+    </div>`).join('')}
+  </div>
+  <div>
+    <label>Sexo</label>
+    <select onchange="sv('sexo',this.value)">
+      <option value="">Selecione</option>
+      ${['Feminino','Masculino','Outro/Prefiro não informar'].map(o=>`<option ${gv('sexo')===o?'selected':''}>${o}</option>`).join('')}
+    </select>
+  </div>
+  <div>
+    <label>Estado (UF)</label>
+    <select onchange="sv('uf',this.value)">
+      <option value="">Selecione</option>
+      ${['AC','AL','AM','AP','BA','CE','DF','ES','GO','MA','MG','MS','MT','PA','PB','PE','PI','PR','RJ','RN','RO','RR','RS','SC','SE','SP','TO'].map(u=>`<option ${gv('uf')===u?'selected':''}>${u}</option>`).join('')}
+    </select>
+  </div>
+  <div>
+    <label>Referência interna (opcional)</label>
+    <input type="text" value="${gv('ref')}" placeholder="Número do processo, código interno, etc." oninput="sv('ref',this.value)">
+    <div class="field-hint">Não armazenado junto com os dados clínicos — apenas local.</div>
+  </div>
+</div>`},
+
+// 1 — TIPO DE IMPEDIMENTO
+{nav:'Tipo de impedimento',render:()=>{
+  let h=`<div class="pg-title">Tipo de impedimento</div>
+  <div class="pg-sub">Marque o(s) tipo(s) de deficiência ou impedimento identificados. A seleção influencia o cálculo do Escore Ajustado (método Fuzzy).</div>
+  <div style="max-width:560px">
+  <div class="cg" style="margin-bottom:12px">`;
+  const TYPES=[
+    {k:'C1',label:'Deficiência Física',ex:'Amputação, paralisia, lesão medular, etc.'},
+    {k:'C2',label:'Deficiência Auditiva',ex:'Surdez parcial ou total'},
+    {k:'C3',label:'Deficiência Visual',ex:'Cegueira ou baixa visão'},
+    {k:'C4',label:'Deficiência Intelectual',ex:'DI leve, moderada, grave'},
+    {k:'C5',label:'Deficiência Mental / Psicossocial',ex:'Esquizofrenia, TEA, transtorno bipolar, etc.'},
+  ];
+  TYPES.forEach(t=>{
+    h+=`<div class="ci ${gb(t.k)?'sel':''}" onclick="toggleC('${t.k}',this)">
+      <input type="checkbox" ${gb(t.k)?'checked':''}><div>
+      <div style="font-weight:700;font-size:13px">${t.label}</div>
+      <div style="font-size:11px;color:#6b7280">${t.ex}</div></div></div>`;
+  });
+  h+=`</div>
+  <div class="ci ${gb('C_nenhum')?'sel':''}" onclick="toggleC('C_nenhum',this)" style="margin-top:4px">
+    <input type="checkbox" ${gb('C_nenhum')?'checked':''}>
+    <div><div style="font-weight:700">Não se trata de pessoa com impedimento</div>
+    <div style="font-size:11px;color:#6b7280">Sem deficiência identificada no momento da avaliação</div></div>
+  </div>
+  <div style="margin-top:16px">
+    <label>CID-10 principal (opcional)</label>
+    <div class="cid-search-wrap">
+      <input type="text" id="cid_search" autocomplete="off"
+        value="${gv('cid')?'':''}" placeholder="Digite código ou diagnóstico (ex: G80, paralisia, surdez...)"
+        oninput="cidSearch(this.value)" onfocus="cidSearch(this.value)"
+        style="max-width:360px">
+      <div class="cid-dropdown" id="cid_dropdown" style="display:none"></div>
+    </div>
+    ${gv('cid')?`<div class="cid-tag" id="cid_selected"><strong>${gv('cid')}</strong> <span id="cid_lbl">${getCidLabel(gv('cid'))}</span> <button onclick="clearCid()" title="Remover">×</button></div>`:'<div id="cid_selected" style="display:none"></div>'}
+    <div class="field-hint">Apenas o código — nenhum nome ou dado pessoal é armazenado.</div>
+  </div>
+  </div>`;
+  return h;
+}},
+
+// 2 — D1 + D2
+{nav:'D1 · Aprendizagem e D2 · Comunicação',render:()=>`
+<div class="pg-title">Domínios 1 e 2</div>
+<div class="pg-sub">Clique na opção que melhor descreve a capacidade atual do avaliado. Use <strong>💬</strong> para o roteiro de entrevista e <strong>❓</strong> para orientações de pontuação.</div>
+${renderIFBRM([0,1])}`},
+
+// 3 — D3 + D4
+{nav:'D3 · Mobilidade e D4 · Cuidados',render:()=>`
+<div class="pg-title">Domínios 3 e 4</div>
+<div class="pg-sub">Clique na opção que melhor descreve a capacidade atual do avaliado. Lembre: cadeira de rodas bem manejada = 75, não 25.</div>
+${renderIFBRM([2,3])}`},
+
+// 4 — D5
+{nav:'D5 · Vida Doméstica',render:()=>`
+<div class="pg-title">Domínio 5 — Vida Doméstica</div>
+<div class="pg-sub">Avalia atividades realizadas dentro e fora do lar. Se o avaliado nunca realizou determinada atividade antes da deficiência, pontue a capacidade atual estimada.</div>
+${renderIFBRM([4])}`},
+
+// 5 — D6
+{nav:'D6 · Educação e Trabalho',render:()=>`
+<div class="pg-title">Domínio 6 — Educação, Trabalho e Vida Econômica</div>
+<div class="pg-sub">Pontue o que a pessoa CONSEGUE FAZER, independente de estar empregada ou matriculada no momento. Desemprego por razão econômica ≠ incapacidade.</div>
+${renderIFBRM([5])}`},
+
+// 6 — D7
+{nav:'D7 · Relações Sociais',render:()=>`
+<div class="pg-title">Domínio 7 — Relações, Vida Social e Política</div>
+<div class="pg-sub">Avalia relações interpessoais, vida comunitária e regulação emocional. Isolamento por escolha é diferente de isolamento por incapacidade.</div>
+${renderIFBRM([6])}`},
+
+// 7 — FUZZY
+{nav:'Critérios Fuzzy',render:()=>{
+  const types=['C1','C2','C3','C4','C5'].filter(t=>gb(t));
+  const INFO={
+    C1:{label:'Deficiência Física',doms:'D3 (Mobilidade) + D4 (Cuidados pessoais)',
+        conds:[{k:'fz_C1_cad',l:'Desloca-se exclusivamente em cadeira de rodas'},{k:'fz_C1_nohelp',l:'Não dispõe de auxílio de terceiros sempre que necessário'}]},
+    C2:{label:'Deficiência Auditiva',doms:'D2 (Comunicação) + D7 (Relações)',
+        conds:[{k:'fz_C2_early',l:'Surdez ocorreu antes dos 6 anos de idade'},{k:'fz_C2_nohelp',l:'Não dispõe de auxílio de terceiros sempre que necessário'}]},
+    C3:{label:'Deficiência Visual',doms:'D3 (Mobilidade) + D5 (Vida doméstica)',
+        conds:[{k:'fz_C3_born',l:'Já não enxergava ao nascer (cegueira congênita)'},{k:'fz_C3_nohelp',l:'Não dispõe de auxílio de terceiros sempre que necessário'}]},
+    C4:{label:'Deficiência Intelectual',doms:'D1 (Aprendizagem) + D6 (Educação/Trabalho)',
+        conds:[{k:'fz_C4_alone',l:'Não consegue ficar sozinho com segurança (alimentação, higiene)'},{k:'fz_C4_nohelp',l:'Não dispõe de auxílio de terceiros sempre que necessário'}]},
+    C5:{label:'Deficiência Mental / Psicossocial',doms:'D6 (Educação/Trabalho) + D7 (Relações)',
+        conds:[{k:'fz_C5_disc',l:'Discriminado por transtorno mental — restringe participação social'},{k:'fz_C5_nohelp',l:'Não dispõe de auxílio de terceiros sempre que necessário'}]},
+  };
+  let h=`<div class="pg-title">Critérios de sensibilização Fuzzy</div>
+  <div class="pg-sub">O método Fuzzy sensibiliza o cálculo nos domínios mais afetados por cada tipo de deficiência. Verifique e marque os critérios aplicáveis.</div>`;
+  if(!types.length){
+    h+=`<div class="abox">Nenhum tipo de deficiência selecionado na etapa anterior. Volte e marque o(s) tipo(s) correspondente(s).</div>`;
+    return h;
+  }
+  h+=`<div class="fuzzy-panel"><div class="fuzzy-title">🔷 Método Fuzzy — por tipo de impedimento</div>
+  <div class="fuzzy-sub">Marque quando aplicável. Isso afeta o escore ajustado comparado à régua de classificação.</div>`;
+  types.forEach(t=>{
+    const info=INFO[t];if(!info)return;
+    const active=info.conds.some(c=>gb(c.k));
+    h+=`<div class="fz-type ${active?'active':''}">
+      <div class="fz-label">${info.label}</div>
+      <div class="fz-doms">Domínios prevalentes: ${info.doms}</div>`;
+    info.conds.forEach(c=>{
+      h+=`<div class="ci ${gb(c.k)?'sel':''}" onclick="toggleC('${c.k}',this)" style="margin-bottom:6px">
+        <input type="checkbox" ${gb(c.k)?'checked':''}><span style="font-size:12px">${c.l}</span></div>`;
+    });
+    if(active)h+=`<div style="font-size:11px;color:#b45309;font-weight:700;margin-top:4px">⚡ Critério ativo — domínios prevalentes recalculados no escore ajustado</div>`;
+    h+=`</div>`;
+  });
+  h+=`</div>
+  <div style="margin-top:20px;max-width:520px">
+    <div style="font-size:13px;font-weight:700;color:#374151;margin-bottom:10px">Percepção global do avaliador</div>
+    <div class="rg">
+      ${['Não se trata de pessoa com deficiência','Restrição leve','Restrição moderada','Restrição grave'].map(o=>`
+      <div class="ri ${gv('perc_av')===o?'sel':''}" onclick="selRadio('perc_av','${o}',this)">
+        <input type="radio" name="percav" ${gv('perc_av')===o?'checked':''}>${o}</div>`).join('')}
+    </div>
+    <div style="margin-top:14px">
+      <label>Observações do avaliador</label>
+      <textarea rows="3" style="width:100%;max-width:520px" oninput="sv('obs',this.value)">${gv('obs')}</textarea>
+    </div>
+  </div>`;
+  return h;
+}},
+
+// 8 — CONCLUSÃO
+{nav:'Conclusão',render:()=>{
+  const alerts=buildAlerts();
+  let h=`<div class="pg-title">Conclusão</div>
+  <div class="pg-sub">Com base na avaliação realizada, registre a conclusão diagnóstica.</div>`;
+  alerts.forEach(a=>h+=`<div class="abox ${a.t==='e'?'err':a.t==='ok'?'ok':''}">⚠️ ${a.m}</div>`);
+  h+=`<div style="max-width:560px">
+    <div style="font-size:13px;font-weight:700;color:#374151;margin-bottom:10px">Diagnóstico *</div>
+    <div class="rg">
+      <div class="ri ${gv('concl')==='pcd'?'sel':''}" onclick="selRadio('concl','pcd',this)">
+        <input type="radio" name="concl" ${gv('concl')==='pcd'?'checked':''}>
+        <div><div style="font-weight:700">Pessoa com Deficiência (PcD)</div>
+        <div style="font-size:12px;color:#6b7280">Enquadra-se no Art. 2º da Lei Brasileira de Inclusão — Lei 13.146/2015</div></div>
+      </div>
+      <div class="ri ${gv('concl')==='npcd'?'sel':''}" onclick="selRadio('concl','npcd',this)">
+        <input type="radio" name="concl" ${gv('concl')==='npcd'?'checked':''}>
+        <div><div style="font-weight:700">Não se trata de Pessoa com Deficiência</div>
+        <div style="font-size:12px;color:#6b7280">Avaliação não evidencia impedimento de longo prazo</div></div>
+      </div>
+    </div>
+    <div style="margin-top:16px">
+      <label>Observações finais</label>
+      <textarea rows="4" style="width:100%" oninput="sv('concl_obs',this.value)">${gv('concl_obs')}</textarea>
+    </div>
+  </div>`;
+  return h;
+}},
+
+// 9 — RESULTADO
+{nav:'Resultado',render:()=>{
+  const{ds,rawSum,fuzzySum,filled,types,fuzzyAtivos}=calcScores();
+  const ag=gv('faixa');
+  const cls=classifyBySum(fuzzySum,ag,types);
+  const clsFinal=applyPonderacao(cls,ag,types,S.data);
+  const r=getRegua(ag,types);
+  let h=`<div class="pg-title">Resultado da Avaliação IFBRM</div>`;
+  if(clsFinal&&ag){
+    h+=`<div class="cls-banner ${clsFinal.bg}">
+      <div class="cls-title">${clsFinal.cls.toUpperCase()}</div>
+      ${clsFinal.ponderado?`<div style="font-size:11px;font-weight:600;opacity:0.85;margin-bottom:4px">⚠️ Componente de Ponderação aplicado — classificação ajustada de ${clsFinal.clsAntes}</div>`:''}
+      <div class="cls-sub">Escore ajustado: <strong>${fuzzySum}</strong> &nbsp;·&nbsp; Escore bruto: <strong>${rawSum}</strong> &nbsp;·&nbsp; Faixa: <strong>${ag} anos</strong>${types.length?` &nbsp;·&nbsp; <strong>${types.join(', ')}</strong>`:''}</div>
+
+      ${gv('concl')?`<div style="font-size:13px;font-weight:800;margin-top:10px;padding-top:10px;border-top:1px solid rgba(0,0,0,0.1)">Conclusão: ${gv('concl')==='pcd'?'✅ Pessoa com Deficiência (PcD)':'⬜ Não se trata de PcD'}</div>`:''}
+    </div>`;
+    h+=renderRegua(fuzzySum,r);
+  }else if(!ag){
+    h+=`<div class="abox">⚠️ Faixa etária não informada — retorne à etapa 1 para classificar pela régua.</div>`;
+  }else{
+    h+=`<div class="abox err">Avaliação incompleta — preencha mais itens para obter a classificação.</div>`;
+  }
+  h+=`<div style="font-size:13px;font-weight:800;color:#0f172a;margin-bottom:10px">Escore por domínio</div>
+  <div class="result-grid">`;
+  IFBRM.forEach((d,di)=>{
+    const dsc=ds['d'+(di+1)];
+    const sum=dsc?.sum;
+    const cnt=dsc?.count||1;
+    const pct=sum?Math.round(sum/cnt):null;
+    const gc=pct?gravClass(pct):'';
+    const col=gc==='g100'?'#185fa5':gc==='g75'?'#3b6d11':gc==='g50'?'#854f0b':gc==='g25'?'#791f1f':'#9ca3af';
+    h+=`<div class="rc" style="border-color:${sum?col:'#e5e7eb'}">
+      <div class="rc-score" style="color:${col}">${sum||'—'}</div>
+      <div class="rc-dom">${d.dom.replace(/^\d+\. /,'')}</div>
+      ${sum?`<div class="rc-level" style="background:${col}22;color:${col}">${levelLabel(pct)}</div>`:'<div class="rc-level">Não avaliado</div>'}
+    </div>`;
+  });
+  h+=`</div>`;
+  h+=`<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;align-items:center">
+    <button class="btn-pdf" onclick="showPDFModal()">📄 Exportar Laudo PDF</button>
+    <button class="btn-json" onclick="exportJSON()">⬇ Exportar JSON</button>
+    <button class="btn-new" onclick="novaAvaliacao()">+ Nova avaliação</button>
+  </div>
+  <div class="send-status" id="send_status"></div>`;
+  if(filled<57){
+    h+=`<div class="abox" style="margin-top:16px">ℹ️ ${57-filled} itens não foram preenchidos e aparecem como "—" no laudo. É possível concluir assim, mas o escore será parcial.</div>`;
+  }
+  return h;
+}},
+];
+// ═══════════════════════════════════════════════
+// PAYLOAD
+// ═══════════════════════════════════════════════
+function buildPayload(){
+  const{ds,rawSum,fuzzySum,filled,types,fuzzyAtivos}=calcScores();
+  const ag=gv('faixa');
+  const cls=classifyBySum(fuzzySum,ag,types);
+  const clsFinal=applyPonderacao(cls,ag,types,S.data);
+  const dur=S.startedAt?Math.round((Date.now()-S.startedAt)/1000):null;
+  const itens={};
+  IFBRM.forEach(d=>d.items.forEach(it=>{const v=S.data[it.id];if(v!==undefined&&v!=='')itens[it.id]=v;}));
+  return{
+    meta:{versao:'funcio_v2',gerado_em:new Date().toISOString()},
+    perfil:{faixa_etaria:ag,sexo:gv('sexo'),uf:gv('uf'),tipos_deficiencia:types,cid:gv('cid')},
+    resultado:{escore_bruto:rawSum,escore_fuzzy:fuzzySum,classificacao:clsFinal?.cls||'Incompleto',classificacao_antes_ponderacao:clsFinal?.ponderado?clsFinal.clsAntes:null,ponderacao_aplicada:clsFinal?.ponderado||false,itens_preenchidos:filled},
+    escores_dominio:ds,
+    itens_brutos:itens,
+    avaliacao:{percepcao_avaliador:gv('perc_av'),conclusao:gv('concl'),observacoes:gv('obs'),duracao_segundos:dur},
+    fuzzy_ativos:fuzzyAtivos,
+  };
+}
+
+// ═══════════════════════════════════════════════
+// SUPABASE — ENVIO ANÔNIMO
+// ═══════════════════════════════════════════════
+async function submitAnonData(payload){
+  if(!_db||!gb('lgpd_ok'))return;
+  try{
+    const row={
+      faixa_etaria:payload.perfil.faixa_etaria||null,
+      sexo:payload.perfil.sexo||null,
+      uf:payload.perfil.uf||null,
+      tipos_deficiencia:payload.perfil.tipos_deficiencia,
+      cid_principal:payload.perfil.cid||null,
+      escore_bruto:payload.resultado.escore_bruto,
+      escore_fuzzy:payload.resultado.escore_fuzzy,
+      classificacao:payload.resultado.classificacao,
+      itens_preenchidos:payload.resultado.itens_preenchidos,
+      escores_dominio:payload.escores_dominio,
+      itens_brutos:payload.itens_brutos,
+      percepcao_avaliador:payload.avaliacao.percepcao_avaliador||null,
+      conclusao:payload.avaliacao.conclusao||null,
+      fuzzy_ativos:payload.fuzzy_ativos,
+      duracao_segundos:payload.avaliacao.duracao_segundos,
+      versao_app:'funcio_v1',
+    };
+    const{error}=await _db.from('avaliacoes').insert([row]);
+    const el=document.getElementById('send_status');
+    if(el){
+      el.textContent=error?'':'✓ Dados enviados para pesquisa. Obrigado pela contribuição!';
+      el.style.color=error?'#dc2626':'#059669';
+    }
+  }catch(e){}
+}
+async function submitOptIn(email){
+  if(!_db||!email)return;
+  try{await _db.from('contatos_opt_in').insert([{email}]);}catch(e){}
+}
+
+// ═══════════════════════════════════════════════
+// EXPORT JSON
+// ═══════════════════════════════════════════════
+function exportJSON(){
+  const payload=buildPayload();
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`ifbrm_${Date.now()}.json`;
+  a.click();URL.revokeObjectURL(a.href);
+  toast('JSON exportado!','ok');
+}
+
+// ═══════════════════════════════════════════════
+// GERAR LAUDO PDF (jsPDF)
+// ═══════════════════════════════════════════════
+function showPDFModal(){document.getElementById('pdf_modal').style.display='flex';}
+function closePDFModal(){document.getElementById('pdf_modal').style.display='none';}
+function gerarPDF(mode){
+  mode=mode||'resumido';
+  if(!window.jspdf){toast('jsPDF não carregado. Verifique sua conexão.','err');return;}
+  const{jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  const{ds,rawSum,fuzzySum,filled,types}=calcScores();
+  const ag=gv('faixa');
+  const cls=classifyBySum(fuzzySum,ag,types);
+  const clsFinal=applyPonderacao(cls,ag,types,S.data);
+  const r=getRegua(ag,types);
+  const now=new Date();
+  const dateStr=now.toLocaleDateString('pt-BR')+' '+now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  const ref=gv('ref');
+
+  // helpers
+  const W=210,ml=18,mr=192,cw=W-ml-mr;
+  let y=18;
+  function line(text,size,bold,color){
+    doc.setFontSize(size||11);
+    doc.setFont('helvetica',bold?'bold':'normal');
+    if(color)doc.setTextColor(...color);else doc.setTextColor(30,30,30);
+    doc.text(text,ml,y);
+    y+=size?size*0.45+2:7;
+  }
+  function section(title){
+    y+=3;
+    doc.setFillColor(240,246,255);
+    doc.roundedRect(ml-2,y-5,cw+4,8,1,1,'F');
+    doc.setFontSize(10);doc.setFont('helvetica','bold');doc.setTextColor(26,86,164);
+    doc.text(title,ml,y);
+    y+=7;
+    doc.setTextColor(30,30,30);
+  }
+  function pair(label,value){
+    doc.setFontSize(10);doc.setFont('helvetica','bold');doc.setTextColor(80,80,80);
+    doc.text(label+': ',ml,y);
+    doc.setFont('helvetica','normal');doc.setTextColor(20,20,20);
+    const lw=doc.getTextWidth(label+': ');
+    doc.text(value||'—',ml+lw,y);
+    y+=6;
+  }
+  function hline(){doc.setDrawColor(220,220,220);doc.line(ml,y,mr,y);y+=4;}
+
+  // ── CABEÇALHO ──
+  doc.setFillColor(15,23,42);
+  doc.rect(0,0,W,22,'F');
+  doc.setFontSize(16);doc.setFont('helvetica','bold');doc.setTextColor(255,255,255);
+  doc.text('FUNCIO',ml,14);
+  doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(150,180,220);
+  doc.text('Índice de Funcionalidade Brasileiro Modificado — IFBRM',ml+28,14);
+  doc.setFontSize(8);doc.setTextColor(120,140,170);
+  doc.text('funcio.app · Laudo gerado em '+dateStr,mr,14,'right');
+  y=30;
+
+  // ── REFERÊNCIA ──
+  if(ref){
+    doc.setFontSize(9);doc.setFont('helvetica','italic');doc.setTextColor(100,100,100);
+    doc.text('Referência interna: '+ref,ml,y);y+=7;
+  }
+
+  // ── CLASSIFICAÇÃO ──
+  const clsColors={Grave:[239,68,68],Moderado:[245,158,11],Leve:[132,204,22],Insuficiente:[16,185,129]};
+  const clsColor=cls?clsColors[cls.cls]:[150,150,150];
+  doc.setFillColor(...clsColor,40);
+  doc.roundedRect(ml-2,y-5,cw+4,28,2,2,'F');
+  doc.setDrawColor(...clsColor);doc.setLineWidth(0.5);
+  doc.roundedRect(ml-2,y-5,cw+4,28,2,2,'S');
+  doc.setFontSize(22);doc.setFont('helvetica','bold');doc.setTextColor(...clsColor);
+  const clsText=cls?cls.cls.toUpperCase():'INCOMPLETO';
+  doc.text(clsText,W/2,y+8,'center');
+  doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(80,80,80);
+  const _pondNote=clsFinal?.ponderado?`  ·  Ponderação: ${clsFinal.clsAntes}→${clsFinal.cls}`:'';
+  doc.text(`Escore ajustado: ${fuzzySum}  ·  Escore bruto: ${rawSum}  ·  Itens: ${filled}/57${_pondNote}`,W/2,y+16,'center');
+  if(r)doc.text(`Régua (${ag}a): Grave ≤${r.grave} · Moderado ≤${r.moderado} · Leve ≤${r.leve} · Insuf. ≤${r.max}`,W/2,y+22,'center');
+  y+=34;hline();
+
+  // ── PERFIL ──
+  section('Perfil do Avaliado');
+  pair('Faixa etária',ag?(ag+' anos'):'—');
+  pair('Sexo',gv('sexo'));
+  pair('UF',gv('uf'));
+  pair('Tipo(s) de deficiência',types.length?types.join(', '):'—');
+  pair('CID-10 principal',gv('cid'));
+  hline();
+
+  // ── ESCORES POR DOMÍNIO ──
+  section('Escores por Domínio');
+  const domNames=['Aprendizagem e Conhecimento','Comunicação','Mobilidade','Cuidados Pessoais','Vida Doméstica','Educação e Trabalho','Relações e Vida Social'];
+  const levelColors={g100:[24,95,165],g75:[59,109,17],g50:[133,79,11],g25:[121,31,31]};
+  domNames.forEach((dn,di)=>{
+    const dsc=ds['d'+(di+1)];
+    const sum=dsc?dsc.sum:null;
+    const cnt=dsc?dsc.count:1;
+    const pct=sum?Math.round(sum/cnt):null;
+    const gc=pct?gravClass(pct):null;
+    const col=gc?levelColors[gc]:[150,150,150];
+    const lvl=pct?levelLabel(pct):'—';
+    doc.setFontSize(10);doc.setFont('helvetica','bold');doc.setTextColor(50,50,50);
+    doc.text(`D${di+1}. ${dn}`,ml,y);
+    doc.setFont('helvetica','bold');doc.setTextColor(...col);
+    doc.text(sum?`${sum} (${lvl})`:'—',mr,y,'right');
+    doc.setFont('helvetica','normal');doc.setTextColor(30,30,30);
+    y+=5.5;
+    if(di<domNames.length-1){doc.setDrawColor(235,235,235);doc.line(ml,y,mr,y);y+=2;}
+  });
+  hline();
+
+  // ── AVALIAÇÃO ──
+  section('Avaliação do Avaliador');
+  pair('Percepção global',gv('perc_av'));
+  pair('Conclusão',gv('concl')==='pcd'?'Pessoa com Deficiência (PcD)':gv('concl')==='npcd'?'Não se trata de PcD':'—');
+  if(gv('obs')){
+    doc.setFontSize(10);doc.setFont('helvetica','bold');doc.setTextColor(80,80,80);
+    doc.text('Observações:',ml,y);y+=5;
+    doc.setFont('helvetica','normal');doc.setTextColor(30,30,30);
+    const obs=doc.splitTextToSize(gv('obs'),cw);
+    doc.text(obs,ml,y);y+=obs.length*5+2;
+  }
+  if(gv('concl_obs')){
+    doc.setFontSize(10);doc.setFont('helvetica','bold');doc.setTextColor(80,80,80);
+    doc.text('Observações finais:',ml,y);y+=5;
+    doc.setFont('helvetica','normal');doc.setTextColor(30,30,30);
+    const co=doc.splitTextToSize(gv('concl_obs'),cw);
+    doc.text(co,ml,y);y+=co.length*5+2;
+  }
+  hline();
+
+  // ── ITENS INDIVIDUAIS (modo completo) ──
+  if(mode==='completo'){
+    const domNamesShort=['Aprendizagem','Comunicação','Mobilidade','Cuidados Pessoais','Vida Doméstica','Educação e Trabalho','Relações Sociais'];
+    IFBRM.forEach((dom,di)=>{
+      const items=dom.items.filter(it=>{const v=S.data[it.id];return v!=null&&v!=='';});
+      if(!items.length)return;
+      if(y>250){doc.addPage();y=18;}
+      section(`D${di+1}. ${domNamesShort[di]}`);
+      items.forEach(it=>{
+        const v=S.data[it.id];
+        const scoreLbl=v===100?'Sem limitação':v===75?'Leve':v===50?'Moderada':v===25?'Grave':'—';
+        const scColors={100:[24,95,165],75:[59,109,17],50:[133,79,11],25:[121,31,31]};
+        const scCol=scColors[v]||[100,100,100];
+        if(y>268){doc.addPage();y=18;}
+        doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(50,50,50);
+        const labelTxt=doc.splitTextToSize(it.label,120);
+        doc.text(labelTxt,ml,y);
+        doc.setFont('helvetica','bold');doc.setTextColor(...scCol);
+        doc.text(`${v} — ${scoreLbl}`,mr,y,'right');
+        doc.setFont('helvetica','normal');doc.setTextColor(30,30,30);
+        y+=labelTxt.length>1?labelTxt.length*4.5+1.5:5.5;
+      });
+      hline();
+    });
+  }
+
+  // ── RODAPÉ LGPD ──
+  y=Math.max(y,270);
+  doc.setFontSize(7.5);doc.setFont('helvetica','italic');doc.setTextColor(150,150,150);
+  const disclaimer='Este laudo foi gerado automaticamente pelo sistema Funcio (funcio.app). Os dados são anonimizados conforme o Art. 12 da LGPD. Nenhum nome, CPF ou dado pessoal identificável é armazenado. O laudo não substitui o ato médico-pericial nem tem validade jurídica per se; deve ser assinado pelo profissional responsável.';
+  const dlines=doc.splitTextToSize(disclaimer,cw);
+  doc.text(dlines,ml,y);
+
+  doc.save(`laudo_ifbrm_${Date.now()}.pdf`);
+  toast('Laudo PDF gerado!','ok');
+}
+
+// ═══════════════════════════════════════════════
+// NOVA AVALIAÇÃO
+// ═══════════════════════════════════════════════
+function novaAvaliacao(){
+  if(!confirm('Iniciar nova avaliação? Os dados atuais serão perdidos.'))return;
+  S.data={};S.scoreCache=null;S.startedAt=null;S.submitted=false;
+  clearInterval(_timerInterval);_timerInterval=null;
+  try{sessionStorage.removeItem('funcio_v1');}catch(e){}
+  S.cur=0;
+  document.getElementById('timer-display').textContent='⏱ 00:00';
+  document.getElementById('welcome').style.display='flex';
+  document.getElementById('lgpd_chk').checked=false;
+  document.getElementById('start_btn').disabled=true;
+  document.getElementById('email_input').value='';
+  render();
+}
+// ═══════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════
+window.addEventListener('load',()=>{
+  initDB();
+  restore();
+  // restore LGPD state
+  if(gb('lgpd_ok')){
+    const chk=document.getElementById('lgpd_chk');
+    if(chk){chk.checked=true;document.getElementById('start_btn').disabled=false;}
+  }
+  const em=gv('email_opt');
+  if(em){const ei=document.getElementById('email_input');if(ei)ei.value=em;}
+  render();
+});
+</script>
+<div class="pdf-modal-bg" id="pdf_modal" style="display:none" onclick="if(event.target===this)closePDFModal()">
+  <div class="pdf-modal">
+    <h3>Exportar Laudo PDF</h3>
+    <p>Escolha o formato do laudo a ser gerado.</p>
+    <div class="pdf-modal-btns">
+      <div class="pdf-opt" onclick="closePDFModal();gerarPDF('resumido')">
+        <div class="pdf-opt-icon">📋</div>
+        <div class="pdf-opt-title">Resumido</div>
+        <div class="pdf-opt-desc">Classificação, escores por domínio, avaliador e rodapé LGPD</div>
+      </div>
+      <div class="pdf-opt" onclick="closePDFModal();gerarPDF('completo')">
+        <div class="pdf-opt-icon">📄</div>
+        <div class="pdf-opt-title">Completo</div>
+        <div class="pdf-opt-desc">+ Respostas individuais de todos os itens avaliados</div>
+      </div>
+    </div>
+    <div class="pdf-modal-cancel" onclick="closePDFModal()">Cancelar</div>
+  </div>
+</div>
+</body>
+</html>
+,
