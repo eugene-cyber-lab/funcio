@@ -508,14 +508,18 @@ const IFBRM=[
 function calcScores(){
   if(S.scoreCache)return S.scoreCache;
   const ds={};
+  const _ag=gv('faixa');
   IFBRM.forEach((d,di)=>{
-    const sc=d.items.map(it=>S.data[it.id]).filter(v=>v!=null&&v!=='');
+    const sc=d.items
+      .filter(it=>!_ag||itemApplies(it.id,_ag))
+      .map(it=>S.data[it.id]).filter(v=>v!=null&&v!=='');
     if(sc.length>0){
       const sum=sc.reduce((a,b)=>a+b,0);
       ds['d'+(di+1)]={mean:Math.round(sum/sc.length),sum,count:sc.length,scores:sc};
     }
   });
-  const allV=IFBRM.flatMap(d=>d.items.map(it=>S.data[it.id])).filter(v=>v!=null&&v!=='');
+  const _totalApplicable=_ag?IFBRM.flatMap(d=>d.items).filter(it=>itemApplies(it.id,_ag)).length:57;
+  const allV=IFBRM.flatMap(d=>d.items.filter(it=>!_ag||itemApplies(it.id,_ag)).map(it=>S.data[it.id])).filter(v=>v!=null&&v!=='');
   const rawSum=allV.reduce((a,b)=>a+b,0);
   const types=['C1','C2','C3','C4','C5'].filter(t=>gb(t));
   // ─── Fuzzy: aplica a MENOR pontuação do domínio a todos os itens (IFBrM §5.3)
@@ -551,7 +555,7 @@ function calcScores(){
       :sc.reduce((a,b)=>a+b,0);
   });
   const fuzzyAtivos=Object.keys(S.data).filter(k=>k.startsWith('fz_')&&S.data[k]===true);
-  return S.scoreCache={ds,rawSum,fuzzySum,filled:allV.length,types,fuzzyAtivos,fuzzyDomMinScore};
+  return S.scoreCache={ds,rawSum,fuzzySum,filled:allV.length,total:_totalApplicable,types,fuzzyAtivos,fuzzyDomMinScore};
 }
 
 // ═══════════════════════════════════════════════
@@ -715,25 +719,45 @@ function cidSearch(q){
   const res=CID_DATA.filter(x=>x.c.startsWith(v)||x.d.toUpperCase().includes(v)||x.g.toUpperCase().includes(v)).slice(0,12);
   if(!res.length){dd.style.display='none';return;}
   const grpColors={Físico:'#fee2e2',Auditivo:'#ede9fe',Visual:'#fef9c3',Intelectual:'#dbeafe',Mental:'#d1fae5',Outros:'#f3f4f6'};
-  dd.innerHTML=res.map(x=>`<div class="cid-item" onclick="selectCid('${x.c}','${x.d.replace(/'/g,"\'")}')">
-    <strong>${x.c}</strong><span>${x.d}</span>
-    <span style="float:right;font-size:9px;padding:1px 5px;border-radius:8px;background:${grpColors[x.g]||'#f3f4f6'};color:#374151">${x.g}</span>
-  </div>`).join('');
+  const _sel=getCids();
+  dd.innerHTML=res.map(x=>{
+    const already=_sel.includes(x.c);
+    return`<div class="cid-item${already?' cid-item-sel':''}" onclick="${already?`removeCid('${x.c}')`:`selectCid('${x.c}','${x.d.replace(/'/g,"\'")}')`}" style="${already?'background:#f0fdf4;':''}">
+      <strong>${x.c}</strong><span>${x.d}</span>
+      ${already?'<span style="float:right;font-size:9px;color:#16a34a;font-weight:800">✓ selecionado</span>':'<span style="float:right;font-size:9px;padding:1px 5px;border-radius:8px;background:'+grpColors[x.g]+'||'#f3f4f6';color:#374151">'+x.g+'</span>'}
+    </div>`;
+  }).join('');
   dd.style.display='block';
 }
+function getCids(){try{const v=gv('cid');return v?JSON.parse(v):[]}catch{return[];}}
+function setCids(arr){sv('cid',arr.length?JSON.stringify(arr):'');}
+function renderCidTags(){
+  const wrap=document.getElementById('cid_selected');
+  if(!wrap)return;
+  const arr=getCids();
+  if(!arr.length){wrap.innerHTML='';wrap.style.display='none';return;}
+  wrap.style.display='flex';
+  wrap.style.flexWrap='wrap';
+  wrap.style.gap='6px';
+  wrap.style.marginTop='8px';
+  wrap.innerHTML=arr.map(c=>`<div class="cid-tag"><strong>${c}</strong><span>${getCidLabel(c)}</span><button onclick="removeCid('${c}')" title="Remover">×</button></div>`).join('');
+}
 function selectCid(code,label){
-  sv('cid',code);
+  const arr=getCids();
+  if(!arr.includes(code)){arr.push(code);setCids(arr);}
   const inp=document.getElementById('cid_search');
   if(inp)inp.value='';
   const dd=document.getElementById('cid_dropdown');
   if(dd)dd.style.display='none';
-  const tag=document.getElementById('cid_selected');
-  if(tag){tag.innerHTML=`<strong>${code}</strong> <span>${label}</span> <button onclick="clearCid()" title="Remover">×</button>`;tag.className='cid-tag';tag.style.display='';}
+  renderCidTags();
+}
+function removeCid(code){
+  setCids(getCids().filter(c=>c!==code));
+  renderCidTags();
 }
 function clearCid(){
-  sv('cid','');
-  const tag=document.getElementById('cid_selected');
-  if(tag){tag.innerHTML='';tag.style.display='none';}
+  setCids([]);
+  renderCidTags();
 }
 // close dropdown on outside click
 document.addEventListener('click',e=>{
@@ -855,9 +879,13 @@ function refreshDomainScore(el){
   const sc=IFBRM[di].items.map(it=>S.data[it.id]).filter(v=>v!=null&&v!=='');
   const badge=document.getElementById('ds-'+(di+1));
   if(!badge)return;
-  if(sc.length>0){
-    const _sum=sc.reduce((a,b)=>a+b,0);
-    const _mean=Math.round(_sum/sc.length);
+  const _agB=gv('faixa');
+  const scFilt=IFBRM[di].items
+    .filter(it=>!_agB||itemApplies(it.id,_agB))
+    .map(it=>S.data[it.id]).filter(v=>v!=null&&v!=='');
+  if(scFilt.length>0){
+    const _sum=scFilt.reduce((a,b)=>a+b,0);
+    const _mean=Math.round(_sum/scFilt.length);
     badge.textContent=_sum;badge.className='dscore '+gravClass(_mean);
   }else{badge.textContent='—';badge.className='dscore';}
 }
@@ -890,17 +918,26 @@ function renderIFBRM(domIndexes){
   domIndexes.forEach(di=>{
     const d=IFBRM[di];const info=DOMAIN_INFO[di];
     const domScore=ds['d'+(di+1)];
+    const _faixa=gv('faixa');
+    const _appCount=_faixa?d.items.filter(it=>itemApplies(it.id,_faixa)).length:d.items.length;
     h+=`<div data-di="${di}" style="margin-bottom:28px">
       <div class="dom-brief">
         <div class="dom-brief-title">${info.title}</div>
         <div class="dom-brief-body">${info.body}</div>
         ${info.tip?`<div class="dom-brief-tip">${info.tip}</div>`:''}
         <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding-top:8px;border-top:1px solid #bfdbfe">
-          <span style="font-size:11px;color:#6b7280;font-weight:600">${d.items.length} itens neste domínio</span>
+          <span style="font-size:11px;color:#6b7280;font-weight:600">${_appCount} ${_faixa&&_appCount<d.items.length?`de ${d.items.length} itens aplicáveis`:`itens`}</span>
           <span id="ds-${di+1}" class="dscore ${domScore?gravClass(Math.round(domScore.sum/domScore.count)):''}">${domScore?domScore.sum:'—'}</span>
         </div>
       </div>`;
-    d.items.forEach(it=>{
+    const _applicable=d.items.filter(it=>!_faixa||itemApplies(it.id,_faixa));
+    const _skipped=d.items.length-_applicable.length;
+    if(_skipped>0){
+      h+=`<div class="abox" style="margin-bottom:12px;border-left-color:#6366f1;background:#eef2ff">
+        📋 <strong>${_skipped} ${_skipped===1?'item':'itens'} não se aplica${_skipped===1?'':'m'}</strong> à faixa etária <strong>${_faixa} anos</strong> e ${_skipped===1?'foi omitido':'foram omitidos'} desta avaliação.
+      </div>`;
+    }
+    _applicable.forEach(it=>{
       const sel=S.data[it.id];
       const answered=sel!==undefined&&sel!=='';
       const guide=GUIDE[it.id]||'';
@@ -994,7 +1031,7 @@ const SCREENS=[
     <div style="font-size:11px;color:#6b7280">Sem deficiência identificada no momento da avaliação</div></div>
   </div>
   <div style="margin-top:16px">
-    <label>CID-10 principal (opcional)</label>
+    <label>CID-10 (um ou mais, opcional)</label>
     <div class="cid-search-wrap">
       <input type="text" id="cid_search" autocomplete="off"
         value="${gv('cid')?'':''}" placeholder="Digite código ou diagnóstico (ex: G80, paralisia, surdez...)"
@@ -1002,8 +1039,9 @@ const SCREENS=[
         style="max-width:360px">
       <div class="cid-dropdown" id="cid_dropdown" style="display:none"></div>
     </div>
-    ${gv('cid')?`<div class="cid-tag" id="cid_selected"><strong>${gv('cid')}</strong> <span id="cid_lbl">${getCidLabel(gv('cid'))}</span> <button onclick="clearCid()" title="Remover">×</button></div>`:'<div id="cid_selected" style="display:none"></div>'}
-    <div class="field-hint">Apenas o código — nenhum nome ou dado pessoal é armazenado.</div>
+    <div id="cid_selected" style="display:none;flex-wrap:wrap;gap:6px;margin-top:8px"></div>
+    <script>setTimeout(renderCidTags,0);</script>
+    <div class="field-hint">Adicione quantos CIDs forem necessários. Apenas o código é armazenado.</div>
   </div>
   </div>`;
   return h;
@@ -1121,7 +1159,7 @@ ${renderIFBRM([6])}`},
 
 // 9 — RESULTADO
 {nav:'Resultado',render:()=>{
-  const{ds,rawSum,fuzzySum,filled,types,fuzzyAtivos}=calcScores();
+  const{ds,rawSum,fuzzySum,filled,total,types,fuzzyAtivos}=calcScores();
   const ag=gv('faixa');
   const cls=classifyBySum(fuzzySum,ag,types);
   const clsFinal=applyPonderacao(cls,ag,types,S.data);
@@ -1163,8 +1201,8 @@ ${renderIFBRM([6])}`},
     <button class="btn-new" onclick="novaAvaliacao()">+ Nova avaliação</button>
   </div>
   <div class="send-status" id="send_status"></div>`;
-  if(filled<57){
-    h+=`<div class="abox" style="margin-top:16px">ℹ️ ${57-filled} itens não foram preenchidos e aparecem como "—" no laudo. É possível concluir assim, mas o escore será parcial.</div>`;
+  if(filled<total){
+    h+=`<div class="abox" style="margin-top:16px">ℹ️ ${total-filled} de ${total} itens aplicáveis não foram preenchidos. É possível concluir assim, mas o escore será parcial.</div>`;
   }
   return h;
 }},
@@ -1173,7 +1211,7 @@ ${renderIFBRM([6])}`},
 // PAYLOAD
 // ═══════════════════════════════════════════════
 function buildPayload(){
-  const{ds,rawSum,fuzzySum,filled,types,fuzzyAtivos}=calcScores();
+  const{ds,rawSum,fuzzySum,filled,total,types,fuzzyAtivos}=calcScores();
   const ag=gv('faixa');
   const cls=classifyBySum(fuzzySum,ag,types);
   const clsFinal=applyPonderacao(cls,ag,types,S.data);
@@ -1182,8 +1220,8 @@ function buildPayload(){
   IFBRM.forEach(d=>d.items.forEach(it=>{const v=S.data[it.id];if(v!==undefined&&v!=='')itens[it.id]=v;}));
   return{
     meta:{versao:'funcio_v2',gerado_em:new Date().toISOString()},
-    perfil:{faixa_etaria:ag,sexo:gv('sexo'),uf:gv('uf'),tipos_deficiencia:types,cid:gv('cid')},
-    resultado:{escore_bruto:rawSum,escore_fuzzy:fuzzySum,classificacao:clsFinal?.cls||'Incompleto',classificacao_antes_ponderacao:clsFinal?.ponderado?clsFinal.clsAntes:null,ponderacao_aplicada:clsFinal?.ponderado||false,itens_preenchidos:filled},
+    perfil:{faixa_etaria:ag,sexo:gv('sexo'),uf:gv('uf'),tipos_deficiencia:types,cids:getCids()},
+    resultado:{escore_bruto:rawSum,escore_fuzzy:fuzzySum,classificacao:clsFinal?.cls||'Incompleto',classificacao_antes_ponderacao:clsFinal?.ponderado?clsFinal.clsAntes:null,ponderacao_aplicada:clsFinal?.ponderado||false,itens_preenchidos:filled,itens_aplicaveis:total},
     escores_dominio:ds,
     itens_brutos:itens,
     avaliacao:{percepcao_avaliador:gv('perc_av'),conclusao:gv('concl'),observacoes:gv('obs'),duracao_segundos:dur},
@@ -1202,7 +1240,7 @@ async function submitAnonData(payload){
       sexo:payload.perfil.sexo||null,
       uf:payload.perfil.uf||null,
       tipos_deficiencia:payload.perfil.tipos_deficiencia,
-      cid_principal:payload.perfil.cid||null,
+      cid_principal:(payload.perfil.cids&&payload.perfil.cids[0])||null,cids:payload.perfil.cids||[],
       escore_bruto:payload.resultado.escore_bruto,
       escore_fuzzy:payload.resultado.escore_fuzzy,
       classificacao:payload.resultado.classificacao,
@@ -1251,7 +1289,7 @@ function gerarPDF(mode){
   if(!window.jspdf){toast('jsPDF não carregado. Verifique sua conexão.','err');return;}
   const{jsPDF}=window.jspdf;
   const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
-  const{ds,rawSum,fuzzySum,filled,types}=calcScores();
+  const{ds,rawSum,fuzzySum,filled,total,types}=calcScores();
   const ag=gv('faixa');
   const cls=classifyBySum(fuzzySum,ag,types);
   const clsFinal=applyPonderacao(cls,ag,types,S.data);
@@ -1318,7 +1356,7 @@ function gerarPDF(mode){
   doc.text(clsText,W/2,y+8,'center');
   doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(80,80,80);
   const _pondNote=clsFinal?.ponderado?`  ·  Ponderação: ${clsFinal.clsAntes}→${clsFinal.cls}`:'';
-  doc.text(`Escore ajustado: ${fuzzySum}  ·  Escore bruto: ${rawSum}  ·  Itens: ${filled}/57${_pondNote}`,W/2,y+16,'center');
+  doc.text(`Escore ajustado: ${fuzzySum}  ·  Escore bruto: ${rawSum}  ·  Itens: ${filled}/${total}${_pondNote}`,W/2,y+16,'center');
   if(r)doc.text(`Régua (${ag}a): Grave ≤${r.grave} · Moderado ≤${r.moderado} · Leve ≤${r.leve} · Insuf. ≤${r.max}`,W/2,y+22,'center');
   y+=34;hline();
 
@@ -1328,7 +1366,8 @@ function gerarPDF(mode){
   pair('Sexo',gv('sexo'));
   pair('UF',gv('uf'));
   pair('Tipo(s) de deficiência',types.length?types.join(', '):'—');
-  pair('CID-10 principal',gv('cid'));
+  const _cids=getCids();
+  pair('CID-10',_cids.length?_cids.join(', '):'—');
   hline();
 
   // ── ESCORES POR DOMÍNIO ──
