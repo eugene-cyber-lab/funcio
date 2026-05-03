@@ -602,13 +602,15 @@ const PONDERACAO={
 };
 // Limiares por faixa: retorna true se itens-chave ATINGEM o limiar (ponderação OK)
 function pondThresholdMet(keyScores,ag){
+  // Retorna TRUE quando itens-chave CONFIRMAM comprometimento → mantém classificação
+  // Retorna FALSE quando itens-chave NÃO mostram comprometimento → rebaixa 1 nível
   if(!keyScores.length)return true;
   const s25=keyScores.filter(v=>v===25).length;
   const s50=keyScores.filter(v=>v===50).length;
   const s75=keyScores.filter(v=>v===75).length;
-  if(ag==='0-4')  return !(s25>=1||s50>=1||s75>=2);
-  if(ag==='60+')  return !(s25>=1||s50>=2||s75>=3);
-  return !(s25>=1||s50>=2||s75>=4); // 5-10, 11-17, 18-59
+  if(ag==='0-4')  return s25>=1||s50>=1||s75>=2;
+  if(ag==='60+')  return s25>=1||s50>=2||s75>=3;
+  return s25>=1||s50>=2||s75>=4; // 5-10, 11-17, 18-59
 }
 function applyPonderacao(clsObj,ag,types,data){
   if(!clsObj)return null;
