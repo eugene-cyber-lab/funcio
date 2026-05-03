@@ -722,10 +722,16 @@ function cidSearch(q){
   const _sel=getCids();
   dd.innerHTML=res.map(x=>{
     const already=_sel.includes(x.c);
-    return`<div class="cid-item${already?' cid-item-sel':''}" onclick="${already?`removeCid('${x.c}')`:`selectCid('${x.c}','${x.d.replace(/'/g,"\'")}')`}" style="${already?'background:#f0fdf4;':''}">
-      <strong>${x.c}</strong><span>${x.d}</span>
-      ${already?'<span style="float:right;font-size:9px;color:#16a34a;font-weight:800">✓ selecionado</span>':'<span style="float:right;font-size:9px;padding:1px 5px;border-radius:8px;background:'+grpColors[x.g]+'||'#f3f4f6';color:#374151">'+x.g+'</span>'}
-    </div>`;
+    const bg=grpColors[x.g]||'#f3f4f6';
+    const badge=already
+      ?'<span style="float:right;font-size:9px;color:#16a34a;font-weight:800">✓ selecionado</span>'
+      :'<span style="float:right;font-size:9px;padding:1px 5px;border-radius:8px;background:'+bg+';color:#374151">'+x.g+'</span>';
+    const dl=x.d.replace(/'/g,'&#39;');
+    const action=already?"removeCid('"+x.c+"')":"selectCid('"+x.c+"','"+dl+"')";
+    return'<div class="cid-item'+(already?' cid-item-sel':'')+'" onclick="'+action+'" style="'+(already?'background:#f0fdf4;':'')+'">'
+      +'<strong>'+x.c+'</strong><span>'+x.d+'</span>'
+      +badge
+      +'</div>';
   }).join('');
   dd.style.display='block';
 }
@@ -809,6 +815,7 @@ function startApp(){
   document.getElementById('welcome').style.display='none';
   if(!S.startedAt)S.startedAt=Date.now();
   startTimer();
+  render();
   // opt-in email if provided
   const em=gv('email_opt');
   if(em&&em.includes('@'))submitOptIn(em);
@@ -833,11 +840,16 @@ function render(){
   const isScoring=S.cur>=2&&S.cur<=8;
   document.getElementById('legend-bar').style.display=isScoring?'flex':'none';
   document.getElementById('content').innerHTML=screen.render();
+  if(S.cur===1)setTimeout(renderCidTags,0);
   // auto-submit on result screen
   if(S.cur===TOTAL-1&&!S.submitted){
     S.submitted=true;
     const payload=buildPayload();
+    const scores=calcScores();
+    payload._scores=scores;
     submitAnonData(payload);
+    const em=gv('email_opt');
+    if(em&&em.includes('@'))sendResultadoEmail(em,payload);
   }
 }
 function renderSidebar(){
@@ -1040,7 +1052,6 @@ const SCREENS=[
       <div class="cid-dropdown" id="cid_dropdown" style="display:none"></div>
     </div>
     <div id="cid_selected" style="display:none;flex-wrap:wrap;gap:6px;margin-top:8px"></div>
-    <script>setTimeout(renderCidTags,0);</script>
     <div class="field-hint">Adicione quantos CIDs forem necessários. Apenas o código é armazenado.</div>
   </div>
   </div>`;
@@ -1264,6 +1275,37 @@ async function submitAnonData(payload){
 async function submitOptIn(email){
   if(!_db||!email)return;
   try{await _db.from('contatos_opt_in').insert([{email}]);}catch(e){}
+}
+async function sendResultadoEmail(email,payload){
+  if(!email||!email.includes('@'))return;
+  const{ds,rawSum,fuzzySum,types}=payload._scores||{};
+  const cls=payload.resultado?.classificacao||'Incompleto';
+  const domNames=['Aprendizagem e Conhecimento','Comunicação','Mobilidade','Cuidados Pessoais','Vida Doméstica','Educação e Trabalho','Relações e Vida Social'];
+  const dominios=domNames.map((nome,di)=>{
+    const dsc=ds?.['d'+(di+1)];
+    return{nome,soma:dsc?.sum||null};
+  });
+  const resultado={
+    classificacao:cls,
+    cls_antes:payload.resultado?.classificacao_antes_ponderacao||null,
+    ponderado:payload.resultado?.ponderacao_aplicada||false,
+    escore_ajustado:fuzzySum||payload.resultado?.escore_fuzzy,
+    escore_bruto:rawSum||payload.resultado?.escore_bruto,
+    faixa_etaria:payload.perfil?.faixa_etaria,
+    tipos:types||payload.perfil?.tipos_deficiencia||[],
+    cids:payload.perfil?.cids||[],
+    dominios,
+  };
+  try{
+    const url=`${SUPABASE_URL.replace('.supabase.co','')}.functions.supabase.co`.replace('https://','https://')+'/send-resultado';
+    // usar URL correta da Edge Function
+    const efUrl=`https://${SUPABASE_URL.split('//')[1].split('.')[0]}.supabase.co/functions/v1/send-resultado`;
+    await fetch(efUrl,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({email,resultado}),
+    });
+  }catch(e){console.warn('Email send failed:',e);}
 }
 
 // ═══════════════════════════════════════════════
@@ -1502,4 +1544,3 @@ window.addEventListener('load',()=>{
 </div>
 </body>
 </html>
-,
