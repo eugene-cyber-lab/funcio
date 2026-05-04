@@ -1,0 +1,6 @@
+{
+  "rewrites": [
+    { "source": "/ifbrm", "destination": "/ifbrm.html" },
+    { "source": "/app",   "destination": "/app.html" }
+  ]
+}
