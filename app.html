@@ -241,7 +241,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:#1a56a4;box-sh
   <div id="sidebar-footer">
     <div id="timer-display">⏱ 00:00</div>
     <div>Dados anonimizados · LGPD Art. 12</div>
-    <div style="margin-top:3px">funcio.app</div>
+    <div style="margin-top:3px">funcio.com.br</div>
   </div>
 </div>
 <div id="main">
@@ -1380,7 +1380,7 @@ function gerarPDF(mode){
   doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(150,180,220);
   doc.text('Índice de Funcionalidade Brasileiro Modificado — IFBRM',ml+28,14);
   doc.setFontSize(8);doc.setTextColor(120,140,170);
-  doc.text('funcio.app · Laudo gerado em '+dateStr,mr,14,'right');
+  doc.text('funcio.com.br · Laudo gerado em '+dateStr,mr,14,'right');
   y=30;
 
   // ── REFERÊNCIA ──
@@ -1486,7 +1486,7 @@ function gerarPDF(mode){
   // ── RODAPÉ LGPD ──
   y=Math.max(y,270);
   doc.setFontSize(7.5);doc.setFont('helvetica','italic');doc.setTextColor(150,150,150);
-  const disclaimer='Este laudo foi gerado automaticamente pelo sistema Funcio (funcio.app). Os dados são anonimizados conforme o Art. 12 da LGPD. Nenhum nome, CPF ou dado pessoal identificável é armazenado. O laudo não substitui o ato médico-pericial nem tem validade jurídica per se; deve ser assinado pelo profissional responsável.';
+  const disclaimer='Este laudo foi gerado automaticamente pelo sistema Funcio (funcio.com.br). Os dados são anonimizados conforme o Art. 12 da LGPD. Nenhum nome, CPF ou dado pessoal identificável é armazenado. O laudo não substitui o ato médico-pericial nem tem validade jurídica per se; deve ser assinado pelo profissional responsável.';
   const dlines=doc.splitTextToSize(disclaimer,cw);
   doc.text(dlines,ml,y);
 
