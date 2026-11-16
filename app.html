@@ -271,7 +271,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:#1a56a4;box-sh
 // SUPABASE CONFIG — substitua antes do deploy
 // ═══════════════════════════════════════════════
 const SUPABASE_URL = 'https://plyqitplulyfgevxsyoh.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBseXFpdHBsdWx5ZmdldnhzeW9oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxNjY0MTEsImV4cCI6MjA5Mjc0MjQxMX0.7wXLcsZLhtipspxfiMAW_mSq9ENwiW6i9dUAcboQ1J8;';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBseXFpdHBsdWx5ZmdldnhzeW9oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxNjY0MTEsImV4cCI6MjA5Mjc0MjQxMX0.7wXLcsZLhtipspxfiMAW_mSq9ENwiW6i9dUAcboQ1J8';
 let _db = null;
 function initDB(){
   try{
@@ -1137,7 +1137,7 @@ ${renderIFBRM([6])}`},
     </div>
     <div style="margin-top:14px">
       <label>Observações do avaliador</label>
-      <textarea rows="3" style="width:100%;max-width:520px" oninput="sv('obs',this.value)">${gv('obs')}</textarea>
+      <textarea rows="3" style="width:100%;max-width:520px" oninput="sv('obs',this.value)">${esc(gv('obs'))}</textarea>
     </div>
   </div>`;
   return h;
@@ -1165,7 +1165,7 @@ ${renderIFBRM([6])}`},
     </div>
     <div style="margin-top:16px">
       <label>Observações finais</label>
-      <textarea rows="4" style="width:100%" oninput="sv('concl_obs',this.value)">${gv('concl_obs')}</textarea>
+      <textarea rows="4" style="width:100%" oninput="sv('concl_obs',this.value)">${esc(gv('concl_obs'))}</textarea>
     </div>
   </div>`;
   return h;
@@ -1214,7 +1214,8 @@ ${renderIFBRM([6])}`},
     <button class="btn-json" onclick="exportJSON()">⬇ Exportar JSON</button>
     <button class="btn-new" onclick="novaAvaliacao()">+ Nova avaliação</button>
   </div>
-  <div class="send-status" id="send_status"></div>`;
+  ${statusHtml('send_status')}
+  ${statusHtml('email_status')}`;
   if(filled<total){
     h+=`<div class="abox" style="margin-top:16px">ℹ️ ${total-filled} de ${total} itens aplicáveis não foram preenchidos. É possível concluir assim, mas o escore será parcial.</div>`;
   }
@@ -1246,38 +1247,77 @@ function buildPayload(){
 // ═══════════════════════════════════════════════
 // SUPABASE — ENVIO ANÔNIMO
 // ═══════════════════════════════════════════════
+function esc(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+const RETRY_BTN='<button class="btn-json" onclick="retryResultadoSend()">↻ Tentar enviar novamente</button>';
+function setStatus(id,msg,color){
+  S[id]={msg,color};
+  const el=document.getElementById(id);
+  if(el){el.textContent=msg;el.style.color=color;}
+  if(id==='send_status'){const rb=document.getElementById('send_retry');if(rb)rb.innerHTML=(color==='#dc2626')?RETRY_BTN:'';}
+}
+function statusHtml(id){
+  const st=S[id];
+  const base=st?`<div class="send-status" id="${id}" style="color:${st.color}">${esc(st.msg)}</div>`:`<div class="send-status" id="${id}"></div>`;
+  return id==='send_status'?base+`<div id="send_retry">${(st&&st.color==='#dc2626')?RETRY_BTN:''}</div>`:base;
+}
+const SEND_ERR='Não foi possível enviar os dados para pesquisa. O resultado e o PDF continuam disponíveis. ';
 async function submitAnonData(payload){
-  if(!_db||!gb('lgpd_ok'))return;
-  try{
-    const row={
-      faixa_etaria:payload.perfil.faixa_etaria||null,
-      sexo:payload.perfil.sexo||null,
-      uf:payload.perfil.uf||null,
-      tipos_deficiencia:payload.perfil.tipos_deficiencia,
-      cid_principal:(payload.perfil.cids&&payload.perfil.cids[0])||null,cids:payload.perfil.cids||[],
-      escore_bruto:payload.resultado.escore_bruto,
-      escore_fuzzy:payload.resultado.escore_fuzzy,
-      classificacao:payload.resultado.classificacao,
-      itens_preenchidos:payload.resultado.itens_preenchidos,
-      escores_dominio:payload.escores_dominio,
-      itens_brutos:payload.itens_brutos,
-      percepcao_avaliador:payload.avaliacao.percepcao_avaliador||null,
-      conclusao:payload.avaliacao.conclusao||null,
-      fuzzy_ativos:payload.fuzzy_ativos,
-      duracao_segundos:payload.avaliacao.duracao_segundos,
-      versao_app:'funcio_v1',
-    };
-    const{error}=await _db.from('avaliacoes').insert([row]);
-    const el=document.getElementById('send_status');
-    if(el){
-      el.textContent=error?'':'✓ Dados enviados para pesquisa. Obrigado pela contribuição!';
-      el.style.color=error?'#dc2626':'#059669';
-    }
-  }catch(e){}
+  if(!gb('lgpd_ok'))return false;
+  const cls=payload.resultado.classificacao;
+  if(!cls||cls==='Incompleto'){
+    setStatus('send_status','Avaliação incompleta: não enviada para pesquisa.','#6b7280');
+    return true;
+  }
+  if(!_db){
+    console.error('avaliacoes: cliente Supabase indisponível');
+    setStatus('send_status',SEND_ERR+'(serviço indisponível)','#dc2626');
+    return false;
+  }
+  const row={
+    faixa_etaria:payload.perfil.faixa_etaria||null,
+    sexo:payload.perfil.sexo||null,
+    uf:payload.perfil.uf||null,
+    tipos_deficiencia:payload.perfil.tipos_deficiencia,
+    cid_principal:(payload.perfil.cids&&payload.perfil.cids[0])||null,cids:payload.perfil.cids||[],
+    escore_bruto:payload.resultado.escore_bruto,
+    escore_fuzzy:payload.resultado.escore_fuzzy,
+    classificacao:cls,
+    itens_preenchidos:payload.resultado.itens_preenchidos,
+    escores_dominio:payload.escores_dominio,
+    itens_brutos:payload.itens_brutos,
+    percepcao_avaliador:payload.avaliacao.percepcao_avaliador||null,
+    conclusao:payload.avaliacao.conclusao||null,
+    fuzzy_ativos:payload.fuzzy_ativos,
+    duracao_segundos:payload.avaliacao.duracao_segundos,
+    versao_app:payload.meta.versao,
+  };
+  for(let tentativa=0;tentativa<2;tentativa++){
+    try{
+      const{error}=await _db.from('avaliacoes').insert([row]);
+      if(!error){
+        setStatus('send_status','✓ Dados enviados para pesquisa. Obrigado pela contribuição!','#059669');
+        return true;
+      }
+      console.error('avaliacoes insert',error.code,error.message);
+    }catch(e){console.error('avaliacoes insert',e&&e.message);}
+    if(tentativa===0)await new Promise(r=>setTimeout(r,2000));
+  }
+  setStatus('send_status',SEND_ERR,'#dc2626');
+  return false;
+}
+function retryResultadoSend(){
+  const payload=buildPayload();
+  payload._scores=calcScores();
+  setStatus('send_status','Reenviando…','#6b7280');
+  return submitAnonData(payload);
 }
 async function submitOptIn(email){
-  if(!_db||!email)return;
-  try{await _db.from('contatos_opt_in').insert([{email}]);}catch(e){}
+  if(!_db||!email)return false;
+  try{
+    const{error}=await _db.rpc('registrar_contato',{p_email:email});
+    if(error){console.error('registrar_contato',error.code,error.message);return false;}
+    return true;
+  }catch(e){console.error('registrar_contato',e&&e.message);return false;}
 }
 async function sendResultadoEmail(email,payload){
   if(!email||!email.includes('@'))return;
@@ -1300,15 +1340,24 @@ async function sendResultadoEmail(email,payload){
     dominios,
   };
   try{
-    const url=`${SUPABASE_URL.replace('.supabase.co','')}.functions.supabase.co`.replace('https://','https://')+'/send-resultado';
-    // usar URL correta da Edge Function
     const efUrl=`https://${SUPABASE_URL.split('//')[1].split('.')[0]}.supabase.co/functions/v1/send-resultado`;
-    await fetch(efUrl,{
+    const resp=await fetch(efUrl,{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({email,resultado}),
     });
-  }catch(e){console.warn('Email send failed:',e);}
+    if(!resp.ok){
+      console.error('send-resultado',resp.status);
+      setStatus('email_status','Não foi possível enviar o resumo por e-mail. O resultado e o PDF continuam disponíveis.','#dc2626');
+      return false;
+    }
+    setStatus('email_status','✓ Resumo enviado por e-mail.','#059669');
+    return true;
+  }catch(e){
+    console.error('send-resultado',e&&e.message);
+    setStatus('email_status','Não foi possível enviar o resumo por e-mail. O resultado e o PDF continuam disponíveis.','#dc2626');
+    return false;
+  }
 }
 
 // ═══════════════════════════════════════════════
@@ -1499,7 +1548,7 @@ function gerarPDF(mode){
 // ═══════════════════════════════════════════════
 function novaAvaliacao(){
   if(!confirm('Iniciar nova avaliação? Os dados atuais serão perdidos.'))return;
-  S.data={};S.scoreCache=null;S.startedAt=null;S.submitted=false;
+  S.data={};S.scoreCache=null;S.startedAt=null;S.submitted=false;S.send_status=null;S.email_status=null;
   clearInterval(_timerInterval);_timerInterval=null;
   try{sessionStorage.removeItem('funcio_v1');}catch(e){}
   S.cur=0;
