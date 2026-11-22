@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; form-action 'none'; base-uri 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="data:,">
+<title>Funcio · Dano Corporal (protótipo)</title>
+<meta name="description" content="Protótipo de apuração do dano corporal com base na Tabela Brasileira (ABMLPM, 2024), com dados de demonstração. Processamento exclusivamente no navegador.">
+<style>
+:root{
+  --bg:#f6f7f9;--panel:#fff;--ink:#16202a;--muted:#5b6673;--line:#dde2e8;
+  --accent:#1f5f8b;--accent-ink:#fff;--warn-bg:#fff6e0;--warn:#8a5a00;--err-bg:#fdecec;--err:#a12828;--ok:#1c6b3c;
+  --test-bg:#fff1c2;--test-ink:#5c4300;--radius:8px;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0f1418;--panel:#161d23;--ink:#e6ebef;--muted:#9aa6b1;--line:#2a343d;
+  --accent:#5aa7d8;--accent-ink:#06121b;--warn-bg:#33270b;--warn:#f0c46a;--err-bg:#3a1515;--err:#f19a9a;--ok:#7fd3a0;
+  --test-bg:#3a300c;--test-ink:#ffe08a;
+}}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+a{color:var(--accent)}
+.skip{position:absolute;left:-999px}.skip:focus{left:8px;top:8px;background:var(--panel);padding:6px 10px;z-index:9}
+header{display:flex;align-items:center;gap:16px;padding:12px 20px;border-bottom:1px solid var(--line);background:var(--panel)}
+header h1{font-size:17px;margin:0;font-weight:650;letter-spacing:.2px}
+header .sub{color:var(--muted);font-size:13px}
+.testbar{background:var(--test-bg);color:var(--test-ink);padding:8px 20px;font-size:13px;font-weight:600;border-bottom:1px solid var(--line)}
+main{display:grid;grid-template-columns:minmax(260px,1fr) minmax(320px,1.25fr) minmax(320px,1.25fr);gap:16px;padding:16px 20px;align-items:start}
+section.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;min-width:0}
+section.panel>h2{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 10px}
+label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
+input[type=search],input[type=number],select,textarea{width:100%;font:inherit;color:inherit;background:transparent;border:1px solid var(--line);border-radius:6px;padding:7px 9px}
+textarea{resize:vertical;min-height:64px}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible,.it:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chip{border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-size:12.5px;background:transparent;color:inherit;cursor:pointer}
+.chip[aria-pressed=true]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.tree{margin-top:12px;max-height:calc(100vh - 290px);overflow:auto;border-top:1px solid var(--line)}
+.grp{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;padding:10px 2px 4px}
+.it{display:block;width:100%;text-align:left;border:0;background:transparent;color:inherit;padding:7px 8px;border-radius:6px;cursor:pointer;font:inherit}
+.it:hover{background:color-mix(in srgb,var(--accent) 8%,transparent)}
+.it[aria-current=true]{background:color-mix(in srgb,var(--accent) 16%,transparent)}
+.it small{display:block;color:var(--muted);font-size:12px}
+.empty{color:var(--muted);font-size:14px;padding:12px 2px}
+.kv{display:grid;grid-template-columns:110px 1fr;gap:4px 10px;font-size:13.5px;margin:8px 0}
+.kv dt{color:var(--muted)}.kv dd{margin:0}
+.orig{font-family:var(--mono);font-size:13px;background:color-mix(in srgb,var(--line) 40%,transparent);padding:8px 10px;border-radius:6px}
+.tag{display:inline-block;font-size:11.5px;padding:1px 7px;border-radius:999px;border:1px solid var(--line);color:var(--muted);margin-right:4px}
+.tag.interp{border-color:var(--warn);color:var(--warn)}
+.faixa{font-size:22px;font-weight:650;margin:6px 0}
+.row{display:flex;gap:10px}.row>*{flex:1}
+.radio{display:flex;gap:14px;margin-top:2px}.radio label{display:flex;gap:6px;align-items:center;margin:0;color:var(--ink);font-size:14px}
+button.primary{margin-top:14px;width:100%;background:var(--accent);color:var(--accent-ink);border:0;border-radius:6px;padding:10px;font:inherit;font-weight:600;cursor:pointer}
+button.primary:disabled{opacity:.45;cursor:not-allowed}
+button.ghost{border:1px solid var(--line);background:transparent;color:inherit;border-radius:6px;padding:5px 10px;font:inherit;font-size:13px;cursor:pointer}
+.errs{color:var(--err);font-size:13px;margin:8px 0 0;padding-left:18px}
+.total{display:flex;align-items:baseline;gap:10px;border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:10px}
+.total .n{font-size:44px;font-weight:700;font-variant-numeric:tabular-nums}
+.total .l{color:var(--muted);font-size:13px}
+ul.sel{list-style:none;margin:0;padding:0}
+ul.sel li{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--line)}
+ul.sel li .v{font-weight:650;font-variant-numeric:tabular-nums;min-width:52px;text-align:right}
+ul.sel li .t{flex:1;font-size:14px}ul.sel li .t small{display:block;color:var(--muted);font-size:12px}
+.alerts{margin:10px 0;display:flex;flex-direction:column;gap:6px}
+.alert{font-size:13px;padding:7px 10px;border-radius:6px}
+.alert.erro{background:var(--err-bg);color:var(--err)}.alert.aviso{background:var(--warn-bg);color:var(--warn)}
+details{margin-top:10px}summary{cursor:pointer;font-size:13.5px;font-weight:600}
+ol.steps{font-family:var(--mono);font-size:12.5px;padding-left:20px;margin:8px 0}
+#laudo{font-family:var(--mono);font-size:12.5px;min-height:180px}
+footer{padding:4px 20px 24px;color:var(--muted);font-size:12.5px}
+@media (max-width:1100px){main{grid-template-columns:1fr 1fr}#p-res{grid-column:1/-1}}
+@media (max-width:720px){main{grid-template-columns:1fr;padding:12px 16px}header{flex-wrap:wrap}.tree{max-height:50vh}}
+</style>
+</head>
+<body>
+<a class="skip" href="#p-aval">Ir para a avaliação</a>
+<header>
+  <h1>Funcio · Dano Corporal</h1>
+  <span class="sub">Protótipo · Tabela Brasileira para a Apuração do Dano Corporal (ABMLPM, 1ª ed., 2024)</span>
+</header>
+<div class="testbar" role="note">CONJUNTO DE DEMONSTRAÇÃO — 24 itens de teste, NÃO VALIDADOS. Não utilizar em laudo. Nenhum dado sai deste navegador.</div>
+
+<main>
+  <section class="panel" id="p-nav" aria-labelledby="h-nav">
+    <h2 id="h-nav">Navegação</h2>
+    <label for="q">Pesquisar sequela</label>
+    <input id="q" type="search" placeholder="ex.: punho, plexo, artrodese" autocomplete="off">
+    <div class="chips" role="group" aria-label="Filtrar por sistema" id="chips"></div>
+    <div class="tree" id="tree" role="list" aria-label="Sequelas"></div>
+  </section>
+
+  <section class="panel" id="p-aval" aria-labelledby="h-aval" tabindex="-1">
+    <h2 id="h-aval">Avaliação</h2>
+    <div id="aval"><p class="empty">Selecione uma sequela na navegação.</p></div>
+  </section>
+
+  <section class="panel" id="p-res" aria-labelledby="h-res">
+    <h2 id="h-res">Resultado</h2>
+    <label for="dom">Dominância lateral do periciando</label>
+    <select id="dom">
+      <option value="">— informar —</option>
+      <option value="D">Destro (dominância direita)</option>
+      <option value="E">Canhoto (dominância esquerda)</option>
+    </select>
+    <div class="total" aria-live="polite"><span class="n" id="total">—</span><span class="l" id="total-l">Sem sequelas</span></div>
+    <ul class="sel" id="lista"></ul>
+    <div class="alerts" id="alerts" aria-live="polite"></div>
+    <details id="mem"><summary>Memória de cálculo</summary><ol class="steps" id="steps"></ol></details>
+    <details open><summary>Texto para laudo</summary>
+      <label for="laudo" class="skip">Texto para laudo</label>
+      <textarea id="laudo" readonly></textarea>
+      <div class="row" style="margin-top:8px"><button class="ghost" id="copy" type="button">Copiar texto</button><button class="ghost" id="clear" type="button">Limpar avaliação</button></div>
+    </details>
+  </section>
+</main>
+<footer>Motor <span id="ver"></span> · O percentual apurado refere-se ao dano corporal (déficit funcional permanente) e não equivale a incapacidade laboral nem a deficiência. O valor dentro de um intervalo é escolha fundamentada do perito.</footer>
+
+<script src="/dano-corporal/data/demo-sequelas.js"></script>
+<script src="/dano-corporal/js/engine.js"></script>
+<script src="/dano-corporal/js/ui.js"></script>
+</body>
+</html>
