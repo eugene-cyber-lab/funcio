@@ -3,16 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Funcio - Plataforma online gratuita para aplicação do IFBRM. Avaliação biopsicossocial da deficiência em 10-20 minutos, sem treinamento prévio necessário.">
-  <meta name="keywords" content="IFBRM, avaliação deficiência, funcionalidade, Brasil, gratuito, peritos médicos">
-  <meta property="og:title" content="Funcio - IFBRM Online no Brasil">
-  <meta property="og:description" content="Plataforma gratuita para avaliação biopsicossocial com o Índice de Funcionalidade Brasileiro Modificado.">
+  <meta name="description" content="Funcio - Plataforma online gratuita de instrumentos de avaliação funcional: IFBRM, WHODAS 2.0 e, em breve, a Tabela Brasileira de Danos.">
+  <meta name="keywords" content="IFBRM, WHODAS 2.0, dano corporal, avaliação deficiência, funcionalidade, Brasil, gratuito, peritos médicos">
+  <meta property="og:title" content="Funcio - Instrumentos de avaliação funcional">
+  <meta property="og:description" content="Plataforma gratuita com IFBRM, WHODAS 2.0 e, em breve, a Tabela Brasileira de Danos.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://www.funcio.com.br">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="canonical" href="https://www.funcio.com.br/">
   <meta name="google-site-verification" content="lb4o7EvzIKo_5NUnx1721vITiiS38141PfNQfWeXO-k" />
-  <title>Funcio - IFBRM Online Gratuito</title>
+  <title>Funcio - Plataforma de instrumentos de avaliação funcional</title>
 
   <style>
     /* Reset e variáveis */
@@ -72,6 +72,13 @@
       flex: 1;
       justify-content: center;
       margin-left: 2rem;
+      gap: 1.75rem;
+    }
+
+    @media (min-width: 769px) {
+      .nav-center {
+        display: flex;
+      }
     }
 
     .nav-center a {
@@ -174,6 +181,43 @@
       font-size: 0.85rem;
       color: var(--text-muted);
       border: 1px solid var(--border);
+    }
+
+
+    /* Instrumentos */
+    .instrument-card {
+      display: flex;
+      flex-direction: column;
+      text-align: left;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .instrument-tag {
+      align-self: flex-start;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.2rem 0.65rem;
+      border-radius: 9999px;
+      background: var(--light-bg);
+      color: var(--primary);
+      border: 1px solid var(--border);
+      margin-bottom: 0.75rem;
+    }
+
+    .instrument-tag.soon {
+      color: var(--text-muted);
+    }
+
+    .instrument-card p {
+      flex: 1;
+      margin-bottom: 1.25rem;
+    }
+
+    .instrument-link {
+      color: var(--primary);
+      font-weight: 600;
+      font-size: 0.95rem;
     }
 
     /* Highlight */
@@ -530,6 +574,10 @@
     <nav>
       <a href="#" class="logo">Funcio</a>
       <div class="nav-center">
+        <a href="#instrumentos">Instrumentos</a>
+        <a href="app.html">IFBRM</a>
+        <a href="https://whodas.funcio.com.br">WHODAS 2.0</a>
+        <a href="/dano-corporal">Dano Corporal</a>
         <a href="#como-funciona">Como funciona</a>
       </div>
       <div class="nav-right">
@@ -542,12 +590,12 @@
   <main>
     <!-- Hero -->
     <section class="hero">
-      <h1>Avaliação de funcionalidade em minutos</h1>
-      <p>Funcio é a plataforma online gratuita para aplicar o IFBRM — o instrumento oficial de avaliação biopsicossocial da deficiência no Brasil. Sem treinamento prévio, sem burocracia.</p>
+      <h1>Instrumentos de avaliação funcional, em um só lugar</h1>
+      <p>Funcio é uma plataforma online de instrumentos para avaliação funcional e pericial: IFBRM, WHODAS 2.0 e, em breve, a Tabela Brasileira de Danos. Gratuito, sem cadastro.</p>
 
       <div class="hero-cta">
-        <a href="app.html" class="btn btn-primary">Começar agora →</a>
-        <a href="#como-funciona" class="btn btn-secondary">Ver como funciona ↓</a>
+        <a href="#instrumentos" class="btn btn-primary">Conhecer os instrumentos ↓</a>
+        <a href="app.html" class="btn btn-secondary">Iniciar o IFBRM →</a>
       </div>
 
       <div class="badge">
@@ -555,10 +603,35 @@
       </div>
     </section>
 
+    <!-- Nossos instrumentos -->
+    <section id="instrumentos" class="section">
+      <h2>Nossos instrumentos</h2>
+      <div class="cards">
+        <a class="card instrument-card" href="app.html">
+          <span class="instrument-tag">No ar</span>
+          <h3>IFBRM</h3>
+          <p>Índice de Funcionalidade Brasileiro Modificado para a avaliação biopsicossocial da deficiência, com classificação e laudo estruturado.</p>
+          <span class="instrument-link">funcio.com.br/app →</span>
+        </a>
+        <a class="card instrument-card" href="https://whodas.funcio.com.br">
+          <span class="instrument-tag">No ar</span>
+          <h3>WHODAS 2.0</h3>
+          <p>Questionário da OMS para avaliar saúde e deficiência em seis domínios de funcionamento.</p>
+          <span class="instrument-link">whodas.funcio.com.br →</span>
+        </a>
+        <a class="card instrument-card" href="/dano-corporal">
+          <span class="instrument-tag soon">Em breve</span>
+          <h3>Tabela Brasileira de Danos</h3>
+          <p>Instrumento para avaliação de dano corporal, distinto da avaliação de deficiência e de incapacidade laboral. Em desenvolvimento.</p>
+          <span class="instrument-link">funcio.com.br/dano-corporal →</span>
+        </a>
+      </div>
+    </section>
+
     <!-- Highlight -->
     <section class="highlight">
       <div class="highlight-content">
-        <h2>Primeiro e único IFBRM online do Brasil</h2>
+        <h2>IFBRM em números</h2>
         <div class="stats">
           <div class="stat">
             <div class="stat-number">63</div>
@@ -578,7 +651,7 @@
 
     <!-- Como funciona -->
     <section id="como-funciona" class="section">
-      <h2>Como funciona</h2>
+      <h2>Como funciona o IFBRM</h2>
       <div class="steps">
         <div class="step">
           <div class="step-number">1</div>
@@ -655,19 +728,20 @@
 
     <!-- CTA final -->
     <section class="final-cta">
-      <h2>Comece agora — é gratuito</h2>
+      <h2>Escolha um instrumento — é gratuito</h2>
       <p>Nenhuma inscrição, nenhum cartão de crédito, nenhuma burocracia. Apenas acesse e comece sua primeira avaliação.</p>
-      <a href="app.html" class="btn btn-primary">Acessar Funcio →</a>
+      <a href="app.html" class="btn btn-primary">Iniciar o IFBRM →</a>
+      <a href="https://whodas.funcio.com.br" class="btn btn-secondary">Aplicar o WHODAS 2.0 →</a>
     </section>
   </main>
 
   <!-- Footer -->
   <footer>
     <div class="footer-content">
-      <p>&copy; Funcio 2025 — Avaliação biopsicossocial simplificada</p>
+      <p>&copy; Funcio 2026 — Avaliação biopsicossocial simplificada</p>
       <div class="footer-links">
         <a href="#privacidade">Privacidade</a>
-        <a href="mailto:contato@funcio.app">Contato</a>
+        <a href="mailto:contato@funcio.com.br">Contato</a>
       </div>
     </div>
   </footer>
