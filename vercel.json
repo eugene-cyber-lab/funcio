@@ -1,6 +1,7 @@
 {
   "rewrites": [
     { "source": "/ifbrm", "destination": "/ifbrm.html" },
-    { "source": "/app",   "destination": "/app.html" }
+    { "source": "/app",   "destination": "/app.html" },
+        { "source": "/dano-corporal", "destination": "/dano-corporal/index.html" }
   ]
 }
