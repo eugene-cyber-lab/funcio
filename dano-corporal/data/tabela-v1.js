@@ -497,7 +497,7 @@
     valoracao: { tipo: 'intervalo', por_dominancia: { dominante: { min: 50, max: 60 }, nao_dominante: { min: 45, max: 55 } } },
     condicoes: [{ texto: 'Apurar o dano considerando a dominância lateral e o grau do prejuízo funcional.', origem: 'fonte_parafraseada' }], segmento: 'membro_superior', segmento_lateral: true,
     combinacao: null, regra_acrescimo: null,
-    possivel_sobreposicao: null, fonte: { pagina: 28 },
+    possivel_sobreposicao: null, fonte: { pagina: 27 },
   }),
   item({
     id: 'c1.a2.n2.plexo_tronco_inf', capitulo: { n: 1, titulo: 'Sistema Nervoso' },
@@ -508,7 +508,7 @@
     valoracao: { tipo: 'intervalo', por_dominancia: { dominante: { min: 30, max: 40 }, nao_dominante: { min: 25, max: 35 } } },
     condicoes: [{ texto: 'Apurar o dano considerando a dominância lateral e o grau do prejuízo funcional.', origem: 'fonte_parafraseada' }], segmento: 'membro_superior', segmento_lateral: true,
     combinacao: null, regra_acrescimo: null,
-    possivel_sobreposicao: null, fonte: { pagina: 28 },
+    possivel_sobreposicao: null, fonte: { pagina: 27 },
   }),
   item({
     id: 'c1.a2.n2.plexo_tronco_sup', capitulo: { n: 1, titulo: 'Sistema Nervoso' },
@@ -904,7 +904,7 @@
     valoracao: { tipo: 'intervalo', min: 80, max: 90 },
     condicoes: null, segmento: null, segmento_lateral: false,
     combinacao: null, regra_acrescimo: null,
-    possivel_sobreposicao: null, fonte: { pagina: 35 },
+    possivel_sobreposicao: null, fonte: { pagina: 34 },
   }),
   item({
     id: 'c1.a3.n4.grave', capitulo: { n: 1, titulo: 'Sistema Nervoso' },
@@ -1289,7 +1289,7 @@
     valoracao: { tipo: 'fixo', min: 12, max: 12 },
     condicoes: null, segmento: null, segmento_lateral: false,
     combinacao: null, regra_acrescimo: null,
-    possivel_sobreposicao: null, fonte: { pagina: 43 },
+    possivel_sobreposicao: null, fonte: { pagina: 44 },
   }),
   item({
     id: 'c2.a11.hemianopsia_nasal', capitulo: { n: 2, titulo: 'Sistema Sensorial e Estomatologia' },
@@ -1311,7 +1311,7 @@
     valoracao: { tipo: 'fixo', min: 5, max: 5 },
     condicoes: null, segmento: null, segmento_lateral: false,
     combinacao: null, regra_acrescimo: null,
-    possivel_sobreposicao: null, fonte: { pagina: 43 },
+    possivel_sobreposicao: null, fonte: { pagina: 44 },
   }),
   item({
     id: 'c2.a11.quadrantanopsia', capitulo: { n: 2, titulo: 'Sistema Sensorial e Estomatologia' },
@@ -1322,7 +1322,7 @@
     valoracao: { tipo: 'intervalo', min: 2, max: 20 },
     condicoes: null, segmento: null, segmento_lateral: false,
     combinacao: null, regra_acrescimo: null,
-    possivel_sobreposicao: null, fonte: { pagina: 43 },
+    possivel_sobreposicao: null, fonte: { pagina: 44 },
   }),
   item({
     id: 'c2.a12.diplopia_frente', capitulo: { n: 2, titulo: 'Sistema Sensorial e Estomatologia' },
@@ -3522,7 +3522,7 @@
     valoracao: { tipo: 'fixo', min: 30, max: 30 },
     condicoes: null, segmento: 'membro_inferior', segmento_lateral: true,
     combinacao: null, regra_acrescimo: null,
-    possivel_sobreposicao: null, fonte: { pagina: 94 },
+    possivel_sobreposicao: null, fonte: { pagina: 95 },
   }),
   item({
     id: 'c5.a47b.troficas', capitulo: { n: 5, titulo: 'Sistema Vascular' },
@@ -3533,7 +3533,7 @@
     valoracao: { tipo: 'fixo', min: 40, max: 40 },
     condicoes: null, segmento: 'membro_inferior', segmento_lateral: true,
     combinacao: null, regra_acrescimo: null,
-    possivel_sobreposicao: null, fonte: { pagina: 94 },
+    possivel_sobreposicao: null, fonte: { pagina: 95 },
   }),
   item({
     id: 'c5.a48.fistula_assint', capitulo: { n: 5, titulo: 'Sistema Vascular' },
@@ -4248,7 +4248,7 @@
     valoracao: { tipo: 'fixo', min: 35, max: 35 },
     condicoes: null, segmento: null, segmento_lateral: false,
     combinacao: null, regra_acrescimo: null,
-    possivel_sobreposicao: null, fonte: { pagina: 105 },
+    possivel_sobreposicao: null, fonte: { pagina: 106 },
   }),
   item({
     id: 'c8.a62c.salpingect_unilateral', capitulo: { n: 8, titulo: 'Sistema Sexual e Reprodutor' },
@@ -4270,7 +4270,7 @@
     valoracao: { tipo: 'intervalo', min: 15, max: 25 },
     condicoes: null, segmento: null, segmento_lateral: false,
     combinacao: null, regra_acrescimo: null,
-    possivel_sobreposicao: null, fonte: { pagina: 105 },
+    possivel_sobreposicao: null, fonte: { pagina: 106 },
   }),
   item({
     id: 'c8.a62d.mastect_unilateral', capitulo: { n: 8, titulo: 'Sistema Sexual e Reprodutor' },
@@ -4369,7 +4369,7 @@
     valoracao: { tipo: 'intervalo', min: 1, max: 5 },
     condicoes: null, segmento: null, segmento_lateral: false,
     combinacao: null, regra_acrescimo: null,
-    possivel_sobreposicao: null, fonte: { pagina: 106 },
+    possivel_sobreposicao: null, fonte: { pagina: 107 },
   }),
   item({
     id: 'c9.a64.panhipopituitarismo', capitulo: { n: 9, titulo: 'Sistema Glandular Endócrino' },
@@ -4468,7 +4468,7 @@
     valoracao: { tipo: 'intervalo', min: 1, max: 5 },
     condicoes: null, segmento: null, segmento_lateral: false,
     combinacao: null, regra_acrescimo: null,
-    possivel_sobreposicao: null, fonte: { pagina: 111 },
+    possivel_sobreposicao: null, fonte: { pagina: 112 },
   }),
   item({
     id: 'c10.a69.leve', capitulo: { n: 10, titulo: 'Sistema Cutâneo' },
@@ -4490,7 +4490,7 @@
     valoracao: { tipo: 'intervalo', min: 21, max: 35 },
     condicoes: null, segmento: null, segmento_lateral: false,
     combinacao: null, regra_acrescimo: null,
-    possivel_sobreposicao: null, fonte: { pagina: 111 },
+    possivel_sobreposicao: null, fonte: { pagina: 112 },
   }),
   item({
     id: 'c10.a69.grave', capitulo: { n: 10, titulo: 'Sistema Cutâneo' },
@@ -4501,7 +4501,7 @@
     valoracao: { tipo: 'intervalo', min: 36, max: 50 },
     condicoes: null, segmento: null, segmento_lateral: false,
     combinacao: null, regra_acrescimo: null,
-    possivel_sobreposicao: null, fonte: { pagina: 111 },
+    possivel_sobreposicao: null, fonte: { pagina: 112 },
   }),
   item({
     id: 'c10.a69.muito_grave', capitulo: { n: 10, titulo: 'Sistema Cutâneo' },
@@ -4512,7 +4512,7 @@
     valoracao: { tipo: 'intervalo', min: 51, max: 70 },
     condicoes: null, segmento: null, segmento_lateral: false,
     combinacao: null, regra_acrescimo: null,
-    possivel_sobreposicao: null, fonte: { pagina: 111 },
+    possivel_sobreposicao: null, fonte: { pagina: 112 },
   }),
   item({
     id: 'c10.a70.prurido', capitulo: { n: 10, titulo: 'Sistema Cutâneo' },
