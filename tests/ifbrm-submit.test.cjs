@@ -61,7 +61,7 @@ async function preencher(page, { completa = true, obs = '', email = '' } = {}) {
     setCids(['G82', 'I69']);
     if (obs) { sv('obs', obs); sv('concl_obs', obs); }
     if (email) sv('email_opt', email);
-    IFBRM.forEach((d, di) => d.items.forEach((it, ii) => { if (completa || (di === 0 && ii === 0)) sv(it.id, 75); }));
+    IFBRM.forEach((d, di) => d.items.forEach((it, ii) => { if (completa || (di === 0 && ii === 0)) { sv(it.id, 75); sv('av2_' + it.id, 75); } }));
     sv('perc_av', 'Moderada'); sv('concl', 'pcd');
     S.startedAt = Date.now() - 60000;
     document.getElementById('welcome').style.display = 'none';
@@ -86,7 +86,7 @@ test('sucesso: 1 insert com cids, versão do payload, sem texto livre; mensagem 
   const row = JSON.parse(r[0].body)[0];
   assert.deepEqual(row.cids, ['G82', 'I69']);
   assert.equal(row.cid_principal, 'G82');
-  assert.equal(row.versao_app, 'funcio_v2');
+  assert.equal(row.versao_app, 'funcio_v3_2av');
   assert.notEqual(row.classificacao, 'Incompleto');
   assert.ok(!r[0].body.includes('TEXTO-LIVRE-SECRETO'), 'texto livre não é enviado');
   assert.ok(!('email' in row));
