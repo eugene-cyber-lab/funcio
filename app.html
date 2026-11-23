@@ -77,6 +77,10 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:#1a56a4;box-sh
 .guide-box.open{display:block}
 .guide-box strong{color:#6d28d9}
 .db-row{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+.db2{padding:7px 9px}
+.av-lbl{font-size:11px;font-weight:800;color:#374151;margin:10px 0 5px}
+.disc-tag{display:inline-block;font-size:10px;font-weight:700;color:#6b7280;background:#f3f4f6;border-radius:10px;padding:2px 9px;margin-top:8px}
+.disc-tag.on{color:#1d4ed8;background:#dbeafe}
 .db{display:flex;flex-direction:column;gap:4px;padding:11px 9px;border-radius:9px;cursor:pointer;font-size:11px;background:#fff;border:2px solid #e5e7eb;text-align:left;transition:all 140ms;line-height:1.35}
 .db:hover{border-color:#93c5fd;background:#f8faff;transform:translateY(-1px)}
 .db .sl{font-size:11px;font-weight:800;color:#6b7280}
@@ -321,14 +325,15 @@ function getRegua(ag,types){
   if(ag==='5-10')  return(c1||c4)
     ?{min:1100,max:4400,grave:1750,moderado:2550,leve:3350}
     :{min:1100,max:4400,grave:2250,moderado:2550,leve:3350};
-  if(ag==='11-17') return(c4||c5)
+  if(ag==='11-17') return(c1||c4)
     ?{min:1300,max:5200,grave:2950,moderado:3800,leve:4550}
     :{min:1300,max:5200,grave:3250,moderado:3800,leve:4550};
   if(ag==='60+')   return(c1||c2)
     ?{min:600,max:2400,grave:1400,moderado:2200,leve:2350}
-    :{min:600,max:2400,grave:1650,moderado:2200,leve:2338};
+    :{min:600,max:2400,grave:1650,moderado:2200,leve:2350};
   return null;
 }
+function classificarCompleto(sum,ag,types){return calcScores().completo?classifyBySum(sum,ag,types):null;}
 function classifyBySum(sum,ag,types){
   const r=getRegua(ag,types||[]);if(!r||sum===null)return null;
   if(sum<=r.grave)    return{cls:'Grave',       cor:'#ef4444',bg:'cls-grave'};
@@ -506,24 +511,30 @@ const IFBRM=[
 // ═══════════════════════════════════════════════
 // SCORING
 // ═══════════════════════════════════════════════
+// Atividades DISCRIMINANTES por faixa etária (Anexo 2 do IFBrM, Quadro 4). Só elas compõem a pontuação final.
+// Régua oficial = 2 avaliadores × nº de discriminantes × (25 a 100): 14, 22, 26, 25 e 12 atividades.
+const DISC={
+  '0-4':['i14','i18','i19','i27','i31','i33','i34','i41','i42','i44','i46','i47','i48','i61'],
+  '5-10':['i13','i14','i16','i19','i23','i24','i25','i26','i27','i41','i42','i43','i44','i45','i46','i47','i48','i51','i53','i55','i56','i62'],
+  '11-17':['i13','i14','i16','i19','i23','i24','i25','i26','i27','i41','i42','i43','i44','i45','i46','i47','i48','i51','i52','i53','i55','i56','i58','i62','i63','i79'],
+  '18-59':['i13','i14','i16','i19','i25','i26','i27','i48','i51','i52','i53','i55','i56','i58','i62','i63','i64','i65','i67','i71','i74','i75','i77','i78','i79'],
+  '60+':['i16','i19','i45','i48','i51','i52','i53','i55','i56','i58','i65','i67'],
+};
+function isDisc(id,ag){return !ag||(DISC[ag]||[]).includes(id);}
+// Pontuação de um avaliador (1 ou 2) para uma atividade. Avaliador 2 usa o prefixo av2_.
+function scoreAv(av,id){const v=av===1?S.data[id]:S.data['av2_'+id];return(v===undefined||v===null||v==='')?null:v;}
+
 function calcScores(){
   if(S.scoreCache)return S.scoreCache;
-  const ds={};
   const _ag=gv('faixa');
-  IFBRM.forEach((d,di)=>{
-    const sc=d.items
-      .filter(it=>!_ag||itemApplies(it.id,_ag))
-      .map(it=>S.data[it.id]).filter(v=>v!=null&&v!=='');
-    if(sc.length>0){
-      const sum=sc.reduce((a,b)=>a+b,0);
-      ds['d'+(di+1)]={mean:Math.round(sum/sc.length),sum,count:sc.length,scores:sc};
-    }
-  });
-  const _totalApplicable=_ag?IFBRM.flatMap(d=>d.items).filter(it=>itemApplies(it.id,_ag)).length:57;
-  const allV=IFBRM.flatMap(d=>d.items.filter(it=>!_ag||itemApplies(it.id,_ag)).map(it=>S.data[it.id])).filter(v=>v!=null&&v!=='');
-  const rawSum=allV.reduce((a,b)=>a+b,0);
-  const types=['C1','C2','C3','C4','C5'].filter(t=>gb(t));
-  // ─── Fuzzy: aplica a MENOR pontuação do domínio a todos os itens (IFBrM §5.3)
+  // Norma (Produto 05 / D-030): Fuzzy, Ponderação e régua usam só o impedimento PRIMÁRIO.
+  const marcados=['C1','C2','C3','C4','C5'].filter(t=>gb(t));
+  const primario=marcados.length===1?marcados[0]:(marcados.includes(gv('tipo_prim'))?gv('tipo_prim'):null);
+  const types=primario?[primario]:[];
+  const semPrimario=marcados.length>1&&!primario;
+  // ─── Fuzzy (Apêndice II do GT, item 3.1): nos domínios relevantes do tipo de impedimento,
+  // presente qualquer condição, cada domínio relevante recebe a sua MENOR pontuação.
+  // Aplicado separadamente a cada avaliador (premissa registrada em docs/DECISIONS.md).
   const FUZZY_DOMS={C1:[2,3],C2:[1,6],C3:[2,4],C4:[0,5],C5:[5,6]};
   const EMBLEM={
     C1:()=>gb('fz_C1_cad')||gb('fz_C1_nohelp'),
@@ -532,31 +543,51 @@ function calcScores(){
     C4:()=>gb('fz_C4_alone')||gb('fz_C4_nohelp'),
     C5:()=>gb('fz_C5_disc')||gb('fz_C5_nohelp'),
   };
-  // Build fuzzyDomMinScore: domain-index → min score to spread across that domain
-  const fuzzyDomMinScore={};
-  types.forEach(t=>{
-    (FUZZY_DOMS[t]||[]).forEach(di=>{
-      const dsc=ds['d'+(di+1)];if(!dsc)return;
-      const sc=dsc.scores;
-      const autoTrigger=sc.some(v=>v===25||v===50)||sc.every(v=>v===75);
+  const av={};
+  const ds={};
+  const dscores={}; // domínio → pontuações discriminantes ajustadas? (brutas) dos dois avaliadores
+  [1,2].forEach(n=>{
+    // pontuações de TODAS as atividades aplicáveis (gatilho/mínimo do Fuzzy) e das discriminantes (soma)
+    const applic=IFBRM.map(d=>d.items.filter(it=>!_ag||itemApplies(it.id,_ag)));
+    const allSc=applic.map(items=>items.map(it=>scoreAv(n,it.id)).filter(v=>v!==null));
+    const discSc=applic.map(items=>items.filter(it=>isDisc(it.id,_ag)).map(it=>scoreAv(n,it.id)).filter(v=>v!==null));
+    const rawSum=discSc.flat().reduce((a,b)=>a+b,0);
+    const minScore={};
+    types.forEach(t=>{
+      const doms=(FUZZY_DOMS[t]||[]).filter(di=>allSc[di].length>0);
+      const autoTrigger=doms.some(di=>allSc[di].some(v=>v===25||v===50)||allSc[di].every(v=>v===75));
       const emblTrigger=EMBLEM[t]?EMBLEM[t]():false;
       if(autoTrigger||emblTrigger){
-        const minScore=Math.min(...sc);
-        if(fuzzyDomMinScore[di]===undefined||minScore<fuzzyDomMinScore[di])
-          fuzzyDomMinScore[di]=minScore;
+        doms.forEach(di=>{
+          const m=Math.min(...allSc[di]);
+          if(minScore[di]===undefined||m<minScore[di])minScore[di]=m;
+        });
       }
     });
+    let fuzzySum=0;
+    discSc.forEach((sc,di)=>{
+      fuzzySum+=minScore[di]!==undefined?sc.length*minScore[di]:sc.reduce((a,b)=>a+b,0);
+    });
+    const totalDisc=applic.flat().filter(it=>isDisc(it.id,_ag)).length;
+    av[n]={rawSum,fuzzySum,filled:discSc.flat().length,total:totalDisc,minScore};
+    discSc.forEach((sc,di)=>{(dscores[di]=dscores[di]||[]).push(...sc);});
   });
-  let fuzzySum=0;
   IFBRM.forEach((d,di)=>{
-    const dsc=ds['d'+(di+1)];if(!dsc)return;
-    const sc=dsc.scores;
-    fuzzySum+=fuzzyDomMinScore[di]!==undefined
-      ?sc.length*fuzzyDomMinScore[di]
-      :sc.reduce((a,b)=>a+b,0);
+    const sc=dscores[di]||[];
+    if(sc.length>0){
+      const sum=sc.reduce((a,b)=>a+b,0);
+      ds['d'+(di+1)]={mean:Math.round(sum/sc.length),sum,count:sc.length,scores:sc};
+    }
   });
+  const rawSum=av[1].rawSum+av[2].rawSum;
+  const fuzzySum=av[1].fuzzySum+av[2].fuzzySum;
+  const filled=av[1].filled+av[2].filled;
+  const total=av[1].total+av[2].total;
+  // Classificação só é válida com TODAS as atividades discriminantes pontuadas pelos dois avaliadores,
+  // pois a régua oficial pressupõe a soma completa de 2 avaliadores.
+  const completo=!!_ag&&total>0&&filled===total&&!semPrimario;
   const fuzzyAtivos=Object.keys(S.data).filter(k=>k.startsWith('fz_')&&S.data[k]===true);
-  return S.scoreCache={ds,rawSum,fuzzySum,filled:allV.length,total:_totalApplicable,types,fuzzyAtivos,fuzzyDomMinScore};
+  return S.scoreCache={ds,rawSum,fuzzySum,filled,total,completo,av,types,marcados,primario,semPrimario,fuzzyAtivos,fuzzyDomMinScore:av[1].minScore};
 }
 
 // ═══════════════════════════════════════════════
@@ -620,9 +651,10 @@ function applyPonderacao(clsObj,ag,types,data){
   let keyIds=new Set();
   types.forEach(t=>{(pondItems[t]||[]).forEach(id=>keyIds.add(id));});
   if(!keyIds.size)return{...clsObj,ponderado:false};
-  const keyScores=[...keyIds].map(id=>data[id]).filter(v=>v!=null&&v!=='');
-  if(!keyScores.length)return{...clsObj,ponderado:false};
-  const met=pondThresholdMet(keyScores,ag);
+  // Norma: o limiar é atingido se QUALQUER UM dos avaliadores o atingir nas atividades-chave.
+  const perAv=[ '', 'av2_' ].map(pre=>[...keyIds].map(id=>data[pre+id]).filter(v=>v!=null&&v!==''));
+  if(!perAv.some(k=>k.length))return{...clsObj,ponderado:false};
+  const met=perAv.some(k=>k.length&&pondThresholdMet(k,ag));
   if(met)return{...clsObj,ponderado:false};
   // rebaixa 1 nível
   const DOWN={Grave:'Moderado',Moderado:'Leve',Leve:'Insuficiente'};
@@ -845,7 +877,7 @@ function render(){
   document.getElementById('content').innerHTML=screen.render();
   if(S.cur===1)setTimeout(renderCidTags,0);
   // auto-submit on result screen
-  if(S.cur===TOTAL-1&&!S.submitted){
+  if(S.cur===TOTAL-1&&!S.submitted&&calcScores().completo){
     S.submitted=true;
     const payload=buildPayload();
     const scores=calcScores();
@@ -853,6 +885,8 @@ function render(){
     submitAnonData(payload);
     const em=gv('email_opt');
     if(em&&em.includes('@'))sendResultadoEmail(em,payload);
+  }else if(S.cur===TOTAL-1&&gb('lgpd_ok')&&!calcScores().completo){
+    setStatus('send_status','Avaliação incompleta: não enviada para pesquisa.','#6b7280');
   }
 }
 function renderSidebar(){
@@ -885,24 +919,24 @@ function setScore(k,v,el){
   sv(k,v);
   el.closest('.db-row').querySelectorAll('.db').forEach(b=>{b.className='db';});
   el.className='db '+scClass(v);
+  el.closest('.item-card').classList.add('answered');
+  refreshDomainScore(el);
+}
+function setScore2(k,v,el){
+  sv('av2_'+k,v);
+  el.closest('.db-row').querySelectorAll('.db').forEach(b=>{b.className='db db2';});
+  el.className='db db2 '+scClass(v);
   refreshDomainScore(el);
 }
 function refreshDomainScore(el){
-  const card=el.closest('[data-di]');
-  if(!card)return;
-  const di=parseInt(card.dataset.di);
-  const sc=IFBRM[di].items.map(it=>S.data[it.id]).filter(v=>v!=null&&v!=='');
-  const badge=document.getElementById('ds-'+(di+1));
-  if(!badge)return;
-  const _agB=gv('faixa');
-  const scFilt=IFBRM[di].items
-    .filter(it=>!_agB||itemApplies(it.id,_agB))
-    .map(it=>S.data[it.id]).filter(v=>v!=null&&v!=='');
-  if(scFilt.length>0){
-    const _sum=scFilt.reduce((a,b)=>a+b,0);
-    const _mean=Math.round(_sum/scFilt.length);
-    badge.textContent=_sum;badge.className='dscore '+gravClass(_mean);
-  }else{badge.textContent='—';badge.className='dscore';}
+  const{ds}=calcScores();
+  IFBRM.forEach((d,di)=>{
+    const badge=document.getElementById('ds-'+(di+1));
+    if(!badge)return;
+    const dsc=ds['d'+(di+1)];
+    if(dsc){badge.textContent=dsc.sum;badge.className='dscore '+gravClass(dsc.mean);}
+    else{badge.textContent='—';badge.className='dscore';}
+  });
 }
 function toggleGuide(id){
   const el=document.getElementById('g-'+id);
@@ -916,9 +950,11 @@ function toast(msg,type=''){
 function buildAlerts(){
   const alerts=[];
   const{ds,filled}=calcScores();
-  if(filled<30)alerts.push({t:'w',m:`Apenas ${filled} de 57 itens preenchidos. O escore pode não refletir a situação real.`});
-  if(gb('C3')&&S.data['i11']===100)alerts.push({t:'w',m:'Deficiência Visual marcada, mas item "Observar" pontuado como Independente (100). Verifique.'});
-  if(gb('C2')&&S.data['i12']===100)alerts.push({t:'w',m:'Deficiência Auditiva marcada, mas item "Ouvir" pontuado como Independente (100). Verifique.'});
+  const{total:_tot,completo:_comp}=calcScores();
+  if(calcScores().semPrimario)alerts.push({t:'w',m:'Mais de um tipo de impedimento marcado sem definir o impedimento primário. Sem ele não há classificação.'});
+  if(!_comp)alerts.push({t:'w',m:`Pontuações das atividades discriminantes: ${filled} de ${_tot} (2 avaliadores). Sem todas não há classificação.`});
+  if(gb('C3')&&(S.data['i11']===100||S.data['av2_i11']===100))alerts.push({t:'w',m:'Deficiência Visual marcada, mas item "Observar" pontuado como Independente (100). Verifique.'});
+  if(gb('C2')&&(S.data['i12']===100||S.data['av2_i12']===100))alerts.push({t:'w',m:'Deficiência Auditiva marcada, mas item "Ouvir" pontuado como Independente (100). Verifique.'});
   if(gv('concl')==='pcd'&&!['C1','C2','C3','C4','C5'].some(t=>gb(t))&&!gb('C_nenhum'))
     alerts.push({t:'e',m:'Conclusão PcD marcada, mas nenhum tipo de impedimento foi selecionado.'});
   return alerts;
@@ -966,13 +1002,20 @@ function renderIFBRM(domIndexes){
         h+=`<button class="guide-btn" onclick="toggleGuide('${it.id}')">Como decidir a pontuação?</button>
             <div class="guide-box" id="g-${it.id}">${guide}</div>`;
       }
-      h+=`<div class="db-row">`;
+      h+=isDisc(it.id,_faixa)?`<div class="disc-tag on">Pontua nesta faixa etária</div>`:`<div class="disc-tag">Informativa nesta faixa (não entra na pontuação)</div>`;
+      h+=`<div class="av-lbl">Avaliador 1</div><div class="db-row">`;
       [[100,'Independente',it.descs[100]],[75,'Adaptado',it.descs[75]],[50,'Com auxílio',it.descs[50]],[25,'Dependente',it.descs[25]]].forEach(([val,lbl,desc])=>{
         const isSel=sel===val;
         h+=`<button class="db${isSel?' '+scClass(val):''}" onclick="setScore('${it.id}',${val},this)">
           <span class="sl">${val} — ${lbl}</span>
           <span class="sd">${desc||''}</span>
         </button>`;
+      });
+      h+=`</div>`;
+      const sel2=S.data['av2_'+it.id];
+      h+=`<div class="av-lbl">Avaliador 2</div><div class="db-row db-row2">`;
+      [[100,'Independente'],[75,'Adaptado'],[50,'Com auxílio'],[25,'Dependente']].forEach(([val,lbl])=>{
+        h+=`<button class="db db2${sel2===val?' '+scClass(val):''}" onclick="setScore2('${it.id}',${val},this)"><span class="sl">${val} — ${lbl}</span></button>`;
       });
       h+=`</div></div>`;
     });
@@ -990,7 +1033,7 @@ const SCREENS=[
 // 0 — DADOS BÁSICOS
 {nav:'Dados básicos',render:()=>`
 <div class="pg-title">Dados da avaliação</div>
-<div class="pg-sub">Não coletamos dados pessoais identificáveis. Preencha apenas as informações abaixo para o cálculo correto da régua de classificação.</div>
+<div class="pg-sub">Não coletamos dados pessoais identificáveis. Preencha apenas as informações abaixo para o cálculo correto da régua de classificação. O IFBrM é aplicado por <strong>dois avaliadores</strong>, que pontuam de forma separada e independente; a classificação usa a soma dos dois sobre as atividades discriminantes da faixa etária.</div>
 <div class="fg" style="max-width:520px">
   <div>
     <label>Faixa etária do avaliado *</label>
@@ -1023,7 +1066,7 @@ const SCREENS=[
 // 1 — TIPO DE IMPEDIMENTO
 {nav:'Tipo de impedimento',render:()=>{
   let h=`<div class="pg-title">Tipo de impedimento</div>
-  <div class="pg-sub">Marque o(s) tipo(s) de deficiência ou impedimento identificados. A seleção influencia o cálculo do Escore Ajustado (método Fuzzy).</div>
+  <div class="pg-sub">Marque o(s) tipo(s) de deficiência ou impedimento identificados. A seleção influencia o cálculo do Escore Ajustado (método Fuzzy). Se marcar mais de um, indique abaixo o <strong>impedimento primário</strong>: os dois avaliadores devem concordar nele, e só ele entra no Fuzzy, na Ponderação e na régua.</div>
   <div style="max-width:560px">
   <div class="cg" style="margin-bottom:12px">`;
   const TYPES=[
@@ -1040,6 +1083,7 @@ const SCREENS=[
       <div style="font-size:11px;color:#6b7280">${t.ex}</div></div></div>`;
   });
   h+=`</div>
+  <div style="margin:4px 0 12px"><label>Impedimento primário <span style="font-weight:400;color:#6b7280">(obrigatório se marcar mais de um tipo)</span></label><div class="rg">${TYPES.map(t=>`<div class="ri ${gv('tipo_prim')===t.k?'sel':''}" onclick="selRadio('tipo_prim','${t.k}',this)"><input type="radio" name="tprim" ${gv('tipo_prim')===t.k?'checked':''}>${t.label}</div>`).join('')}</div></div>
   <div class="ci ${gb('C_nenhum')?'sel':''}" onclick="toggleC('C_nenhum',this)" style="margin-top:4px">
     <input type="checkbox" ${gb('C_nenhum')?'checked':''}>
     <div><div style="font-weight:700">Não se trata de pessoa com impedimento</div>
@@ -1093,7 +1137,7 @@ ${renderIFBRM([6])}`},
 
 // 7 — FUZZY
 {nav:'Critérios Fuzzy',render:()=>{
-  const types=['C1','C2','C3','C4','C5'].filter(t=>gb(t));
+  const{types,semPrimario}=calcScores();
   const INFO={
     C1:{label:'Deficiência Física',doms:'D3 (Mobilidade) + D4 (Cuidados pessoais)',
         conds:[{k:'fz_C1_cad',l:'Desloca-se exclusivamente em cadeira de rodas'},{k:'fz_C1_nohelp',l:'Não dispõe de auxílio de terceiros sempre que necessário'}]},
@@ -1108,6 +1152,10 @@ ${renderIFBRM([6])}`},
   };
   let h=`<div class="pg-title">Critérios de sensibilização Fuzzy</div>
   <div class="pg-sub">O método Fuzzy sensibiliza o cálculo nos domínios mais afetados por cada tipo de deficiência. Verifique e marque os critérios aplicáveis.</div>`;
+  if(semPrimario){
+    h+=`<div class="abox err">Mais de um tipo foi marcado. Volte e indique o <strong>impedimento primário</strong>: só ele é considerado no Fuzzy, na Ponderação e na régua.</div>`;
+    return h;
+  }
   if(!types.length){
     h+=`<div class="abox">Nenhum tipo de deficiência selecionado na etapa anterior. Volte e marque o(s) tipo(s) correspondente(s).</div>`;
     return h;
@@ -1174,8 +1222,8 @@ ${renderIFBRM([6])}`},
 // 9 — RESULTADO
 {nav:'Resultado',render:()=>{
   const{ds,rawSum,fuzzySum,filled,total,types,fuzzyAtivos}=calcScores();
-  const ag=gv('faixa');
-  const cls=classifyBySum(fuzzySum,ag,types);
+  const ag=gv('faixa');const _ag0=ag;
+  const cls=classificarCompleto(fuzzySum,ag,types);
   const clsFinal=applyPonderacao(cls,ag,types,S.data);
   const r=getRegua(ag,types);
   let h=`<div class="pg-title">Resultado da Avaliação IFBRM</div>`;
@@ -1191,7 +1239,7 @@ ${renderIFBRM([6])}`},
   }else if(!ag){
     h+=`<div class="abox">⚠️ Faixa etária não informada — retorne à etapa 1 para classificar pela régua.</div>`;
   }else{
-    h+=`<div class="abox err">Avaliação incompleta — preencha mais itens para obter a classificação.</div>`;
+    h+=`<div class="abox err">Avaliação incompleta — a régua oficial exige as atividades discriminantes pontuadas pelos <strong>dois avaliadores</strong>. Faltam ${total-filled} de ${total} pontuações (Avaliador 1: ${calcScores().av[1].total-calcScores().av[1].filled}; Avaliador 2: ${calcScores().av[2].total-calcScores().av[2].filled}).</div>`;
   }
   h+=`<div style="font-size:13px;font-weight:800;color:#0f172a;margin-bottom:10px">Escore por domínio</div>
   <div class="result-grid">`;
@@ -1205,7 +1253,7 @@ ${renderIFBRM([6])}`},
     h+=`<div class="rc" style="border-color:${sum?col:'#e5e7eb'}">
       <div class="rc-score" style="color:${col}">${sum||'—'}</div>
       <div class="rc-dom">${d.dom.replace(/^\d+\. /,'')}</div>
-      ${sum?`<div class="rc-level" style="background:${col}22;color:${col}">${levelLabel(pct)}</div>`:'<div class="rc-level">Não avaliado</div>'}
+      ${sum?`<div class="rc-level" style="background:${col}22;color:${col}">${levelLabel(pct)}</div>`:`<div class="rc-level">${_ag0&&!(DISC[_ag0]||[]).some(id=>d.items.some(it=>it.id===id))?'Não pontua nesta faixa':'Não avaliado'}</div>`}
     </div>`;
   });
   h+=`</div>`;
@@ -1217,7 +1265,7 @@ ${renderIFBRM([6])}`},
   ${statusHtml('send_status')}
   ${statusHtml('email_status')}`;
   if(filled<total){
-    h+=`<div class="abox" style="margin-top:16px">ℹ️ ${total-filled} de ${total} itens aplicáveis não foram preenchidos. É possível concluir assim, mas o escore será parcial.</div>`;
+    h+=`<div class="abox" style="margin-top:16px">ℹ️ Faltam ${total-filled} de ${total} pontuações das atividades discriminantes (2 avaliadores). Sem elas não há classificação; o escore mostrado é parcial.</div>`;
   }
   return h;
 }},
@@ -1228,17 +1276,17 @@ ${renderIFBRM([6])}`},
 function buildPayload(){
   const{ds,rawSum,fuzzySum,filled,total,types,fuzzyAtivos}=calcScores();
   const ag=gv('faixa');
-  const cls=classifyBySum(fuzzySum,ag,types);
+  const cls=classificarCompleto(fuzzySum,ag,types);
   const clsFinal=applyPonderacao(cls,ag,types,S.data);
   const dur=S.startedAt?Math.round((Date.now()-S.startedAt)/1000):null;
-  const itens={};
-  IFBRM.forEach(d=>d.items.forEach(it=>{const v=S.data[it.id];if(v!==undefined&&v!=='')itens[it.id]=v;}));
+  const itens={},itens2={};
+  IFBRM.forEach(d=>d.items.forEach(it=>{const v=S.data[it.id];if(v!==undefined&&v!=='')itens[it.id]=v;const w=S.data['av2_'+it.id];if(w!==undefined&&w!=='')itens2[it.id]=w;}));
   return{
-    meta:{versao:'funcio_v2',gerado_em:new Date().toISOString()},
-    perfil:{faixa_etaria:ag,sexo:gv('sexo'),uf:gv('uf'),tipos_deficiencia:types,cids:getCids()},
-    resultado:{escore_bruto:rawSum,escore_fuzzy:fuzzySum,classificacao:clsFinal?.cls||'Incompleto',classificacao_antes_ponderacao:clsFinal?.ponderado?clsFinal.clsAntes:null,ponderacao_aplicada:clsFinal?.ponderado||false,itens_preenchidos:filled,itens_aplicaveis:total},
+    meta:{versao:'funcio_v3_2av',gerado_em:new Date().toISOString()},
+    perfil:{faixa_etaria:ag,sexo:gv('sexo'),uf:gv('uf'),tipos_deficiencia:calcScores().marcados,tipo_primario:calcScores().primario,cids:getCids()},
+    resultado:{escore_bruto:rawSum,escore_fuzzy:fuzzySum,classificacao:clsFinal?.cls||'Incompleto',classificacao_antes_ponderacao:clsFinal?.ponderado?clsFinal.clsAntes:null,ponderacao_aplicada:clsFinal?.ponderado||false,itens_preenchidos:filled,itens_aplicaveis:total,avaliadores:2,escore_av1:calcScores().av[1].fuzzySum,escore_av2:calcScores().av[2].fuzzySum,completo:calcScores().completo},
     escores_dominio:ds,
-    itens_brutos:itens,
+    itens_brutos:{avaliador_1:itens,avaliador_2:itens2},
     avaliacao:{percepcao_avaliador:gv('perc_av'),conclusao:gv('concl'),observacoes:gv('obs'),duracao_segundos:dur},
     fuzzy_ativos:fuzzyAtivos,
   };
@@ -1385,7 +1433,7 @@ function gerarPDF(mode){
   const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
   const{ds,rawSum,fuzzySum,filled,total,types}=calcScores();
   const ag=gv('faixa');
-  const cls=classifyBySum(fuzzySum,ag,types);
+  const cls=classificarCompleto(fuzzySum,ag,types);
   const clsFinal=applyPonderacao(cls,ag,types,S.data);
   const r=getRegua(ag,types);
   const now=new Date();
@@ -1510,7 +1558,7 @@ function gerarPDF(mode){
   if(mode==='completo'){
     const domNamesShort=['Aprendizagem','Comunicação','Mobilidade','Cuidados Pessoais','Vida Doméstica','Educação e Trabalho','Relações Sociais'];
     IFBRM.forEach((dom,di)=>{
-      const items=dom.items.filter(it=>{const v=S.data[it.id];return v!=null&&v!=='';});
+      const items=dom.items.filter(it=>{const v=S.data[it.id],w=S.data['av2_'+it.id];return(v!=null&&v!=='')||(w!=null&&w!=='');});
       if(!items.length)return;
       if(y>250){doc.addPage();y=18;}
       section(`D${di+1}. ${domNamesShort[di]}`);
@@ -1524,7 +1572,7 @@ function gerarPDF(mode){
         const labelTxt=doc.splitTextToSize(it.label,120);
         doc.text(labelTxt,ml,y);
         doc.setFont('helvetica','bold');doc.setTextColor(...scCol);
-        doc.text(`${v} — ${scoreLbl}`,mr,y,'right');
+        doc.text(`A1: ${v!=null?v:'—'}  ·  A2: ${S.data['av2_'+it.id]!=null?S.data['av2_'+it.id]:'—'}${isDisc(it.id,ag)?'':'  (informativa)'}`,mr,y,'right');
         doc.setFont('helvetica','normal');doc.setTextColor(30,30,30);
         y+=labelTxt.length>1?labelTxt.length*4.5+1.5:5.5;
       });
