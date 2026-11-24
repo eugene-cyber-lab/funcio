@@ -1,2 +1,7 @@
 # Não publicar testes (S2)
 tests/
+# Documentos internos e scripts: não publicar (auditoria F6, D-047)
+DEPLOY.md
+schema.sql
+SETUP-GIT.sh
+.DS_Store
