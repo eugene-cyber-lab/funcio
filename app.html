@@ -1441,7 +1441,7 @@ function gerarPDF(mode){
   const ref=gv('ref');
 
   // helpers
-  const W=210,ml=18,mr=192,cw=W-ml-mr;
+  const W=210,ml=18,mr=192,cw=mr-ml;
   let y=18;
   function line(text,size,bold,color){
     doc.setFontSize(size||11);
@@ -1462,8 +1462,8 @@ function gerarPDF(mode){
   function pair(label,value){
     doc.setFontSize(10);doc.setFont('helvetica','bold');doc.setTextColor(80,80,80);
     doc.text(label+': ',ml,y);
+    const lw=doc.getTextWidth(label+': ')+1; // medir ainda em negrito, senão o valor encosta no rótulo
     doc.setFont('helvetica','normal');doc.setTextColor(20,20,20);
-    const lw=doc.getTextWidth(label+': ');
     doc.text(value||'—',ml+lw,y);
     y+=6;
   }
@@ -1488,18 +1488,18 @@ function gerarPDF(mode){
 
   // ── CLASSIFICAÇÃO ──
   const clsColors={Grave:[239,68,68],Moderado:[245,158,11],Leve:[132,204,22],Insuficiente:[16,185,129]};
-  const clsColor=cls?clsColors[cls.cls]:[150,150,150];
-  doc.setFillColor(...clsColor,40);
+  const clsColor=clsFinal?clsColors[clsFinal.cls]:[150,150,150];
+  doc.setFillColor(...clsColor.map(c=>Math.round(c+(255-c)*0.88)));
   doc.roundedRect(ml-2,y-5,cw+4,28,2,2,'F');
   doc.setDrawColor(...clsColor);doc.setLineWidth(0.5);
   doc.roundedRect(ml-2,y-5,cw+4,28,2,2,'S');
   doc.setFontSize(22);doc.setFont('helvetica','bold');doc.setTextColor(...clsColor);
-  const clsText=cls?cls.cls.toUpperCase():'INCOMPLETO';
+  const clsText=clsFinal?clsFinal.cls.toUpperCase():'INCOMPLETO';
   doc.text(clsText,W/2,y+8,'center');
   doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(80,80,80);
-  const _pondNote=clsFinal?.ponderado?`  ·  Ponderação: ${clsFinal.clsAntes}→${clsFinal.cls}`:'';
+  const _pondNote=clsFinal?.ponderado?`  ·  Ponderação: ${clsFinal.clsAntes} para ${clsFinal.cls}`:'';
   doc.text(`Escore ajustado: ${fuzzySum}  ·  Escore bruto: ${rawSum}  ·  Itens: ${filled}/${total}${_pondNote}`,W/2,y+16,'center');
-  if(r)doc.text(`Régua (${ag}a): Grave ≤${r.grave} · Moderado ≤${r.moderado} · Leve ≤${r.leve} · Insuf. ≤${r.max}`,W/2,y+22,'center');
+  if(r)doc.text(`Régua (${ag}a): Grave até ${r.grave} · Moderado até ${r.moderado} · Leve até ${r.leve} · Insuficiente até ${r.max}`,W/2,y+22,'center');
   y+=34;hline();
 
   // ── PERFIL ──
