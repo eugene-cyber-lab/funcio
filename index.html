@@ -124,6 +124,25 @@
     .final-cta p { color: var(--text-muted); margin-bottom: 2rem; font-size: 1.1rem; }
     .cta-buttons { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; }
 
+    .about { background: white; padding: 3rem 1.5rem; border-top: 1px solid var(--border); }
+    .about-content { max-width: 800px; margin: 0 auto; }
+    .about-content h2 { font-size: 1.8rem; margin-bottom: 1.5rem; }
+    .about-content p { color: var(--text-muted); line-height: 1.8; margin-bottom: 1.25rem; font-size: 1rem; }
+    .about-content a { color: var(--primary); font-weight: 600; }
+    .about-tag { display: inline-flex; align-items: center; gap: 0.5rem; background: var(--light-bg); border: 1px solid var(--border); border-radius: 9999px; padding: 0.4rem 1rem; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.5rem; }
+
+    .content-section { background: var(--light-bg); padding: 3rem 1.5rem; }
+    .content-section-inner { max-width: 800px; margin: 0 auto; }
+    .content-section h2 { font-size: 1.8rem; margin-bottom: 0.5rem; }
+    .content-section .content-lead { color: var(--text-muted); font-size: 1.05rem; margin-bottom: 2.5rem; line-height: 1.7; }
+    .concept-list { display: flex; flex-direction: column; gap: 1.5rem; }
+    .concept { background: white; border-radius: 0.75rem; padding: 1.5rem; border: 1px solid var(--border); }
+    .concept h3 { font-size: 1.1rem; color: var(--primary); margin-bottom: 0.5rem; }
+    .concept p { color: var(--text-muted); line-height: 1.7; font-size: 0.95rem; }
+    .concept-example { background: #fef9ec; border-left: 4px solid #f59e0b; padding: 1.25rem 1.5rem; border-radius: 0.5rem; margin-top: 1.5rem; }
+    .concept-example p { color: var(--text-dark); font-style: italic; line-height: 1.8; font-size: 0.95rem; margin: 0; }
+    .concept-example cite { display: block; margin-top: 0.5rem; font-style: normal; font-size: 0.85rem; color: var(--text-muted); }
+
     footer { background: var(--dark); color: white; padding: 2rem 1.5rem; text-align: center; }
     .footer-content { max-width: 1200px; margin: 0 auto; }
     footer p { margin-bottom: 1rem; }
@@ -155,6 +174,7 @@
         <a href="https://whodas.funcio.com.br">WHODAS 2.0</a>
         <a href="/dano-corporal">Dano Corporal</a>
         <a href="#como-funciona">Como funciona</a>
+        <a href="#sobre">Sobre</a>
       </div>
       <a href="#instrumentos" class="btn btn-primary">Ver instrumentos</a>
     </nav>
@@ -289,6 +309,41 @@
           <li><span class="check">&#10003;</span> Sem compartilhamento com terceiros</li>
           <li><span class="check">&#10003;</span> Direito a apagar seus dados de uso</li>
         </ul>
+      </div>
+    </section>
+
+    <section class="content-section" id="cif">
+      <div class="content-section-inner">
+        <h2>Por que a CIF mudou tudo</h2>
+        <p class="content-lead">A Classificação Internacional de Funcionalidade (CIF) não é mais uma lista de doenças. É uma mudança de paradigma — do modelo biomédico para o modelo biopsicossocial — com consequências diretas para perícias, laudos e decisões judiciais.</p>
+        <div class="concept-list">
+          <div class="concept">
+            <h3>CID classifica doenças. CIF classifica o que a doença faz com a pessoa.</h3>
+            <p>A CID (Classificação Internacional de Doenças) diz o que o paciente tem: M17 — Gonartrose. A CIF diz como ele vive com isso: se consegue caminhar, trabalhar, participar da vida social. Dois pacientes com a mesma CID podem ter realidades completamente opostas.</p>
+          </div>
+          <div class="concept">
+            <h3>Não basta o diagnóstico: o ambiente importa.</h3>
+            <p>A CIF introduziu os fatores ambientais e pessoais como parte da avaliação. Uma mesma limitação pode ser uma barreira em um contexto e nenhum problema em outro. A deficiência não é um atributo fixo da pessoa — é o resultado de uma interação entre o corpo e o meio.</p>
+          </div>
+          <div class="concept">
+            <h3>Capacidade ≠ desempenho.</h3>
+            <p>Capacidade é o que a pessoa consegue fazer em ambiente controlado. Desempenho é o que ela faz de fato na vida real. A diferença entre os dois revela o papel dos fatores ambientais — e é exatamente o que laudos periciais precisam capturar para ser tecnicamente corretos.</p>
+          </div>
+        </div>
+        <div class="concept-example">
+          <p>"Dois pacientes com artrose grave: um corre, o outro mal caminha. Mesma etiqueta, realidades opostas."</p>
+          <cite>— Exemplo clínico da aula CIF para Justiça</cite>
+        </div>
+      </div>
+    </section>
+
+    <section class="about" id="sobre">
+      <div class="about-content">
+        <div class="about-tag">&#x2139;&#xFE0F; Sobre o projeto</div>
+        <h2>Quem fez o Funcio</h2>
+        <p>Funcio foi criado pelo <a href="https://medicodor.com.br" target="_blank">Medicodor</a> — um projeto independente de educação médica voltado para medicina legal, perícia e dor — sem qualquer fim lucrativo.</p>
+        <p>A motivação é simples: instrumentos validados para avaliação de deficiência e dano corporal existem, são robustos e têm base científica sólida, mas o acesso a eles no Brasil é desigual. Plataformas pagas, versões em papel sem padronização, ou simplesmente desconhecimento do instrumento certo para cada situação.</p>
+        <p>Funcio foi construído para mudar isso. Gratuito, sem cadastro, direto ao ponto — porque a qualidade da avaliação pericial não deveria depender de quem pode pagar por uma ferramenta.</p>
       </div>
     </section>
 
