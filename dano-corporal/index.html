@@ -5,10 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; form-action 'none'; base-uri 'none'">
 <meta name="referrer" content="no-referrer">
-<meta name="robots" content="noindex, nofollow">
-<link rel="icon" href="data:,">
-<title>Funcio · Dano Corporal (protótipo)</title>
-<meta name="description" content="Protótipo de apuração do dano corporal com base na Tabela Brasileira (ABMLPM, 2024), com catálogo não validado. Processamento exclusivamente no navegador.">
+<link rel="canonical" href="https://funcio.com.br/dano-corporal">
+<title>Tabela Brasileira de Danos — Dano Corporal | Funcio</title>
+<meta name="description" content="Calcule o dano corporal com a Tabela Brasileira (ABMLPM, 2024). Quantifica sequelas físicas e psíquicas de lesões para perícias cíveis, seguros e responsabilidade civil. Gratuito, processamento local no navegador.">
+<meta property="og:title" content="Tabela Brasileira de Danos — Dano Corporal | Funcio">
+<meta property="og:description" content="Quantifique sequelas físicas e psíquicas de lesões com a Tabela Brasileira de Danos (ABMLPM, 2024). Para perícias cíveis, seguros e responsabilidade civil.">
+<meta property="og:url" content="https://funcio.com.br/dano-corporal">
+<meta property="og:type" content="website">
 <style>
 :root{
   --bg:#f6f7f9;--panel:#fff;--ink:#16202a;--muted:#5b6673;--line:#dde2e8;
@@ -79,7 +82,7 @@ footer{padding:4px 20px 24px;color:var(--muted);font-size:12.5px}
 <a class="skip" href="#p-aval">Ir para a avaliação</a>
 <header>
   <h1>Funcio · Dano Corporal</h1>
-  <span class="sub">Protótipo · Tabela Brasileira para a Apuração do Dano Corporal (ABMLPM, 1ª ed., 2024)</span>
+  <span class="sub">Protótipo local · Tabela Brasileira para a Apuração do Dano Corporal (ABMLPM, 1ª ed., 2024)</span>
 </header>
 <div class="testbar" role="note">CATÁLOGO NÃO VALIDADO — transcrição automática (412 itens, Arts. 1–73). Requer revisão pericial item a item antes de uso em laudo. Nenhum dado sai deste navegador.</div>
 
@@ -118,8 +121,8 @@ footer{padding:4px 20px 24px;color:var(--muted);font-size:12.5px}
 </main>
 <footer>Motor <span id="ver"></span> · O percentual apurado refere-se ao dano corporal (déficit funcional permanente) e não equivale a incapacidade laboral nem a deficiência. O valor dentro de um intervalo é escolha fundamentada do perito.</footer>
 
-<script src="/dano-corporal/data/tabela-v1.js"></script>
-<script src="/dano-corporal/js/engine.js"></script>
-<script src="/dano-corporal/js/ui.js"></script>
+<script src="data/tabela-v1.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/ui.js"></script>
 </body>
 </html>
