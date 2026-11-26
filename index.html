@@ -113,8 +113,8 @@
     .why-free-content { max-width: 800px; margin: 0 auto; }
     .why-free h2 { font-size: 1.8rem; margin-bottom: 1.5rem; }
     .why-free p { color: var(--text-muted); line-height: 1.8; margin-bottom: 1.5rem; font-size: 1rem; }
-    .highlight-box { background: white; border-left: 4px solid var(--primary); padding: 1.5rem; border-radius: 0.5rem; margin-top: 2rem; }
-    .highlight-box h3 { margin-bottom: 0.75rem; color: var(--primary); }
+    .highlight-box { background: white; border: 1px solid var(--border); padding: 1.5rem; border-radius: 0.75rem; margin-top: 2rem; }
+    .highlight-box h3 { margin-bottom: 0.75rem; color: var(--text-dark); font-size: 1rem; }
     .highlight-box p { margin: 0; color: var(--text-muted); }
 
     .lgpd { background: linear-gradient(135deg, #e0f2fe 0%, #dbeafe 100%); padding: 3rem 1.5rem; border-radius: 0.75rem; margin: 3rem auto; max-width: 800px; text-align: center; }
@@ -144,9 +144,10 @@
     .concept { background: white; border-radius: 0.75rem; padding: 1.5rem; border: 1px solid var(--border); }
     .concept h3 { font-size: 1.1rem; color: var(--primary); margin-bottom: 0.5rem; }
     .concept p { color: var(--text-muted); line-height: 1.7; font-size: 0.95rem; }
-    .concept-example { background: #fef9ec; border-left: 4px solid #f59e0b; padding: 1.25rem 1.5rem; border-radius: 0.5rem; margin-top: 1.5rem; }
-    .concept-example p { color: var(--text-dark); font-style: italic; line-height: 1.8; font-size: 0.95rem; margin: 0; }
-    .concept-example cite { display: block; margin-top: 0.5rem; font-style: normal; font-size: 0.85rem; color: var(--text-muted); }
+    .concept-example { position: relative; padding: 0.5rem 1rem 0.5rem 2.5rem; margin-top: 2rem; }
+    .concept-example::before { content: '\201C'; position: absolute; left: 0; top: -0.5rem; font-size: 3.5rem; color: var(--border); font-family: Georgia, 'Times New Roman', serif; line-height: 1; }
+    .concept-example p { color: var(--text-dark); font-style: italic; line-height: 1.8; font-size: 1rem; margin: 0; }
+    .concept-example cite { display: block; margin-top: 0.75rem; font-style: normal; font-size: 0.85rem; color: var(--text-muted); }
 
     footer { background: var(--dark); color: white; padding: 2rem 1.5rem; text-align: center; }
     .footer-content { max-width: 1200px; margin: 0 auto; }
